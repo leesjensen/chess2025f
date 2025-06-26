@@ -1,9 +1,6 @@
 package chess;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static chess.ChessGame.TeamColor;
 import static chess.ChessPiece.PieceType;
@@ -16,10 +13,74 @@ import static chess.ChessPiece.PieceType;
  * signature of the existing methods.
  */
 public class ChessBoard {
-    ChessPiece[][] squares = new ChessPiece[8][8];
+    final ChessPiece[][] squares = new ChessPiece[8][8];
+    final public ArrayList<ChessMove> history = new ArrayList<>();
+
 
     public ChessBoard() {
 
+    }
+
+    public ChessBoard(ChessBoard board) {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                ChessPiece piece = board.squares[i][j];
+                this.squares[i][j] = (piece == null) ? null : new ChessPiece(piece);
+            }
+        }
+    }
+
+
+    public List<ChessMove> getHistory() {
+        return history;
+    }
+
+
+    public void movePiece(ChessMove move) {
+        var piece = getPiece(move.getStartPosition());
+
+        // Handle promotion
+        if (move.getPromotionPiece() != null) {
+            piece = new ChessPiece(piece.getTeamColor(), move.getPromotionPiece());
+        }
+        // Handle castle
+        else if ((piece.getPieceType() == PieceType.KING) &&
+                (Math.abs(move.getStartPosition().getColumn() - move.getEndPosition().getColumn()) == 2)) {
+            castle(move);
+        }
+        // Handle en passant
+        else if ((piece.getPieceType() == PieceType.PAWN) &&
+                (move.getStartPosition().getColumn() != move.getEndPosition().getColumn()) &&
+                (getPiece(move.getEndPosition()) == null)) {
+            enPassant(move);
+        }
+
+        removePiece(move.getStartPosition());
+        addPiece(move.getEndPosition(), piece);
+
+        history.add(move);
+    }
+
+
+    public void enPassant(ChessMove move) {
+        var killRow = move.getEndPosition().getRow() == 6 ? 5 : 4;
+        var killPosition = new ChessPosition(killRow, move.getEndPosition().getColumn());
+
+        removePiece(killPosition);
+    }
+
+    public void castle(ChessMove move) {
+        var row = move.getEndPosition().getRow();
+        var rookMove = new ChessMove(new ChessPosition(row, 1), new ChessPosition(row, 4), null);
+        if (move.getEndPosition().getColumn() == 7) {
+            rookMove = new ChessMove(new ChessPosition(row, 8), new ChessPosition(row, 6), null);
+        }
+        movePiece(rookMove);
+    }
+
+
+    private void removePiece(ChessPosition position) {
+        squares[position.getRow() - 1][position.getColumn() - 1] = null;
     }
 
     /**
@@ -71,10 +132,117 @@ public class ChessBoard {
     }
 
 
+    public ChessPlacement getPlacement(TeamColor color, PieceType type) {
+        for (var placement : collection()) {
+            if (placement.getPiece().getTeamColor() == color && placement.getPiece().getPieceType() == type) {
+                return placement;
+            }
+        }
+        return null;
+    }
+
+    public boolean isOriginalPosition(ChessPosition pos) {
+        for (var bh : getHistory()) {
+            if (bh.getStartPosition().equals(pos)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    public ChessMove getLastMove() {
+        return history.getLast();
+    }
+
+
     public boolean isSquareEmpty(int row, int col) {
         var pieceAt = getPiece(new ChessPosition(row, col));
         return pieceAt == null;
     }
+
+
+    public boolean isAttacked(ChessPosition targetPos, TeamColor targetColor) {
+        return !getAttackers(targetPos, targetColor).isEmpty();
+    }
+
+    public Collection<ChessPosition> getAttackers(ChessPosition targetPos, TeamColor targetColor) {
+        var attackers = new ArrayList<ChessPosition>();
+
+        for (var candidateAttacker : collection()) {
+            if (candidateAttacker.getPiece().getTeamColor() != targetColor) {
+                var moves = candidateAttacker.pieceMoves(this);
+                for (var move : moves) {
+                    if (move.getEndPosition().equals(targetPos)) {
+                        attackers.add(candidateAttacker.getPos());
+                        break;
+                    }
+                }
+            }
+        }
+        return attackers;
+    }
+
+    public boolean isMoveLegal(ChessMove move) {
+        var piece = getPiece(move.getStartPosition());
+
+        // Test if this move was a castle, and if so is it valid.
+        if (isMoveCastle(piece, move)) {
+            if (!isCastleValid(piece, move)) {
+                return false;
+            }
+        }
+
+        // Test if this move causes the team's king to be put in check.
+        var newBoard = new ChessBoard(this);
+        newBoard.movePiece(move);
+        var king = newBoard.getPlacement(piece.getTeamColor(), PieceType.KING);
+        return king == null || !king.isAttacked(newBoard);
+    }
+
+
+    private boolean isMoveCastle(ChessPiece piece, ChessMove move) {
+        if (piece.getPieceType() == PieceType.KING) {
+            return Math.abs(move.getStartPosition().getColumn() - move.getEndPosition().getColumn()) == 2;
+        }
+        return false;
+    }
+
+
+    private boolean isCastleValid(ChessPiece king, ChessMove move) {
+        var color = king.getTeamColor();
+        var teamRow = color == TeamColor.BLACK ? 8 : 1;
+        // Make sure king not being attacked.
+        if (posNotAttacked(teamRow, 5, color)) {
+            var castleLeft = move.getEndPosition().getColumn() == 3;
+            if (castleLeft) {
+                return posNotAttacked(teamRow, 3, color) && posNotAttacked(teamRow, 4, color);
+            } else {
+                return posNotAttacked(teamRow, 6, color) && posNotAttacked(teamRow, 7, color);
+            }
+        }
+        return false;
+    }
+
+
+    private boolean posNotAttacked(int row, int col, TeamColor color) {
+        var pos = new ChessPosition(row, col);
+        return !isAttacked(pos, color);
+    }
+
+    public Collection<ChessPlacement> collection() {
+        var result = new ArrayList<ChessPlacement>();
+
+        for (var i = 0; i < 8; i++) {
+            for (var j = 0; j < 8; j++) {
+                if (squares[i][j] != null) {
+                    result.add(new ChessPlacement(squares[i][j], new ChessPosition(i + 1, j + 1)));
+                }
+            }
+        }
+        return result;
+    }
+
 
     private static final int BLACK = 0;
     private static final int RED = 1;
