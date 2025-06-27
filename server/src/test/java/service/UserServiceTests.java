@@ -1,11 +1,11 @@
+package service;
+
 import dataaccess.*;
 import model.UserData;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import service.CodedException;
-import service.UserService;
 import utils.StringUtils;
 
 import java.util.stream.Stream;
