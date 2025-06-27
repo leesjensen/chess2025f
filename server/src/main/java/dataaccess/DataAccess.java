@@ -5,23 +5,23 @@ import model.*;
 import java.util.Collection;
 
 public interface DataAccess {
-    void clear();
+    void clear() throws DataAccessException;
 
-    UserData createUser(UserData user);
+    UserData createUser(UserData user) throws DataAccessException;
 
-    UserData getUser(String username);
+    UserData getUser(String username) throws DataAccessException;
 
-    GameData createGame(GameData game);
+    GameData createGame(String gameName) throws DataAccessException;
 
-    GameData getGame(String gameID);
+    GameData getGame(int gameID) throws DataAccessException;
 
-    Collection<GameData> listGames();
+    Collection<GameData> listGames() throws DataAccessException;
 
-    GameData updateGame(GameData game);
+    GameData updateGame(GameData game) throws DataAccessException;
 
-    AuthData createAuth(AuthData auth);
+    AuthData createAuth(String username) throws DataAccessException;
 
-    AuthData getAuth(String authToken);
+    AuthData getAuth(String authToken) throws DataAccessException;
 
-    void deleteAuth(String authToken);
+    void deleteAuth(String authToken) throws DataAccessException;
 }

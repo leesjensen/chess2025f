@@ -1,15 +1,16 @@
 package dataaccess;
 
-import model.AuthData;
-import model.GameData;
-import model.UserData;
+import chess.ChessGame;
+import model.*;
 
 import java.util.*;
 
 public class MemoryDataAccess implements DataAccess {
-    private Map<String, UserData> users = new HashMap<>();
-    private Map<String, GameData> games = new HashMap<>();
-    private Map<String, AuthData> auths = new HashMap<>();
+    private int nextID = 1000;
+
+    final private Map<String, UserData> users = new HashMap<>();
+    final private Map<Integer, GameData> games = new HashMap<>();
+    final private Map<String, AuthData> auths = new HashMap<>();
 
     @Override
     public void clear() {
@@ -19,9 +20,12 @@ public class MemoryDataAccess implements DataAccess {
     }
 
     @Override
-    public UserData createUser(UserData user) {
-        users.put(user.username(), user);
-        return user;
+    public UserData createUser(UserData user) throws DataAccessException {
+        if (getUser(user.username()) == null) {
+            users.put(user.username(), user);
+            return user;
+        }
+        throw new DataAccessException("attempt to add duplicate user");
     }
 
     @Override
@@ -30,13 +34,17 @@ public class MemoryDataAccess implements DataAccess {
     }
 
     @Override
-    public GameData createGame(GameData game) {
-        games.put(game.gameID(), game);
-        return game;
+    public GameData createGame(String gameName) {
+        var gameID = nextID++;
+        var gameData = new GameData(gameID, null, null, gameName, new ChessGame());
+        games.put(gameData.gameID(), gameData);
+        gameData.game().getBoard().resetBoard();
+        gameData.game().setTeamTurn(ChessGame.TeamColor.WHITE);
+        return gameData;
     }
 
     @Override
-    public GameData getGame(String gameID) {
+    public GameData getGame(int gameID) {
         return games.get(gameID);
     }
 
@@ -47,11 +55,14 @@ public class MemoryDataAccess implements DataAccess {
 
     @Override
     public GameData updateGame(GameData game) {
+        games.put(game.gameID(), game);
         return game;
     }
 
     @Override
-    public AuthData createAuth(AuthData auth) {
+    public AuthData createAuth(String username) {
+        var auth = new AuthData(AuthData.generateToken(), username);
+        auths.put(auth.authToken(), auth);
         return auth;
     }
 
