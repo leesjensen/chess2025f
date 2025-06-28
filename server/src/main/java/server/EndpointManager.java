@@ -15,11 +15,13 @@ public class EndpointManager {
     private final AdminService adminService;
     private final UserService userService;
     private final AuthService authService;
+    private final GameService gameService;
 
     public EndpointManager(DataAccess dataAccess) {
         adminService = new AdminService(dataAccess);
         userService = new UserService(dataAccess);
         authService = new AuthService(dataAccess);
+        gameService = new GameService(dataAccess);
     }
 
     public void register(Javalin javalin) {
@@ -27,6 +29,8 @@ public class EndpointManager {
         javalin.post("/user", this::registerUser);
         javalin.post("/session", this::loginUser);
         javalin.delete("/session", this::logoutUser);
+        javalin.post("/game", this::createGame);
+        javalin.get("/game", this::listGames);
     }
 
 
@@ -38,7 +42,7 @@ public class EndpointManager {
     private void registerUser(Context context) throws CodedException {
         UserData userData = getBodyObject(context, UserData.class);
         if (isNullOrEmpty(userData.username()) || isNullOrEmpty(userData.email()) || isNullOrEmpty(userData.password())) {
-            throw new CodedException(400, "missing required parameters");
+            throw new CodedException(400, "bad request");
         }
 
         AuthData authData = userService.registerUser(userData);
@@ -66,7 +70,28 @@ public class EndpointManager {
         authService.deleteSession(authToken);
         context.json("{}");
     }
-    
+
+    private void createGame(Context context) throws CodedException {
+        String authToken = context.header("authorization");
+        GameData gameData = getBodyObject(context, GameData.class);
+        if (isNullOrEmpty(gameData.gameName())) {
+            throw new CodedException(400, "bad request");
+        }
+
+        GameData game = gameService.createGame(authToken, gameData.gameName());
+
+        var response = Map.of("gameID", game.gameID());
+        context.json(new Gson().toJson(response));
+    }
+
+    private void listGames(Context context) throws CodedException {
+        String authToken = context.header("authorization");
+        var gameList = gameService.listGames(authToken);
+
+        var response = Map.of("games", gameList);
+        context.json(new Gson().toJson(response));
+    }
+
     private static <T> T getBodyObject(Context context, Class<T> clazz) {
         var bodyObject = new Gson().fromJson(context.body(), clazz);
 
