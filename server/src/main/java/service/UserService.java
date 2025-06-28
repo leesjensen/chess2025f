@@ -3,25 +3,14 @@ package service;
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
 import model.*;
-import utils.StringUtils;
 
-public class UserService {
-
-    final private DataAccess dataAccess;
-
+public class UserService extends Service {
     public UserService(DataAccess dataAccess) {
-        this.dataAccess = dataAccess;
+        super(dataAccess);
     }
 
 
     public AuthData registerUser(UserData user) throws CodedException {
-        if (StringUtils.isNullOrEmpty(user.username())) {
-            throw new CodedException(400, "missing username");
-        }
-        if (StringUtils.isNullOrEmpty(user.password())) {
-            throw new CodedException(400, "missing password");
-        }
-
         try {
             UserData newUser = dataAccess.createUser(user);
             return dataAccess.createAuth(newUser.username());

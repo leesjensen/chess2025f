@@ -2,8 +2,10 @@ package service;
 
 import dataaccess.*;
 import model.UserData;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Named;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -26,16 +28,14 @@ public class AdminServiceTests {
         var authData = userService.registerUser(user);
 
         var gameService = new GameService(dataAccess);
-        gameService.createGame("testGame");
+        gameService.createGame(authData.authToken(), "testGame");
 
         var service = new AdminService(dataAccess);
-        Assertions.assertDoesNotThrow(service::clearApplication);
+        assertDoesNotThrow(service::clearApplication);
 
         var authService = new AuthService(dataAccess);
-        Assertions.assertThrows(CodedException.class, () -> authService.createSession(user));
-        Assertions.assertNull(authService.getAuthData(authData.authToken()));
+        assertThrows(CodedException.class, () -> authService.createSession(user));
 
-        var games = gameService.listGames();
-        Assertions.assertEquals(0, games.size());
+        assertThrows(CodedException.class, () -> gameService.listGames(authData.authToken()));
     }
 }

@@ -2,7 +2,9 @@ package service;
 
 import dataaccess.*;
 import model.UserData;
-import org.junit.jupiter.api.Assertions;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -24,10 +26,10 @@ public class UserServiceTests {
         var service = new UserService(dataAccess);
         var user = new UserData("juan", "too many secrets", "juan@byu.edu");
 
-        Assertions.assertDoesNotThrow(() -> {
+        assertDoesNotThrow(() -> {
             var authData = service.registerUser(user);
-            Assertions.assertNotNull(authData);
-            Assertions.assertFalse(StringUtils.isNullOrEmpty(authData.authToken()));
+            assertNotNull(authData);
+            assertFalse(StringUtils.isNullOrEmpty(authData.authToken()));
         });
     }
 
@@ -37,7 +39,7 @@ public class UserServiceTests {
         var service = new UserService(dataAccess);
         var user = new UserData("juan", "too many secrets", "juan@byu.edu");
 
-        Assertions.assertDoesNotThrow(() -> service.registerUser(user));
-        Assertions.assertThrows(CodedException.class, () -> service.registerUser(user));
+        assertDoesNotThrow(() -> service.registerUser(user));
+        assertThrows(CodedException.class, () -> service.registerUser(user));
     }
 }

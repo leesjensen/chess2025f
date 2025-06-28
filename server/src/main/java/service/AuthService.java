@@ -3,11 +3,9 @@ package service;
 import dataaccess.*;
 import model.*;
 
-public class AuthService {
-    private final DataAccess dataAccess;
-
+public class AuthService extends Service {
     public AuthService(DataAccess dataAccess) {
-        this.dataAccess = dataAccess;
+        super(dataAccess);
     }
 
     public AuthData createSession(UserData user) throws CodedException {
@@ -24,16 +22,9 @@ public class AuthService {
 
     public void deleteSession(String authToken) throws CodedException {
         try {
+            getAuthData(authToken);
             dataAccess.deleteAuth(authToken);
         } catch (DataAccessException ex) {
-            throw new CodedException(500, "Internal server error");
-        }
-    }
-
-    public AuthData getAuthData(String authToken) throws CodedException {
-        try {
-            return dataAccess.getAuth(authToken);
-        } catch (DataAccessException ignored) {
             throw new CodedException(500, "Internal server error");
         }
     }

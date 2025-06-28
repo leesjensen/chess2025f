@@ -6,15 +6,14 @@ import model.*;
 
 import java.util.Collection;
 
-public class GameService {
-
-    private final DataAccess dataAccess;
+public class GameService extends Service {
 
     public GameService(DataAccess dataAccess) {
-        this.dataAccess = dataAccess;
+        super(dataAccess);
     }
 
-    public Collection<GameData> listGames() throws CodedException {
+    public Collection<GameData> listGames(String authToken) throws CodedException {
+        getAuthData(authToken);
         try {
             return dataAccess.listGames();
         } catch (DataAccessException ex) {
@@ -22,7 +21,8 @@ public class GameService {
         }
     }
 
-    public GameData createGame(String gameName) throws CodedException {
+    public GameData createGame(String authToken, String gameName) throws CodedException {
+        getAuthData(authToken);
         try {
             return dataAccess.createGame(gameName);
         } catch (DataAccessException ex) {

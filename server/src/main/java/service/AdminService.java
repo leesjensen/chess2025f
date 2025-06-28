@@ -3,11 +3,9 @@ package service;
 
 import dataaccess.*;
 
-public class AdminService {
-    private final DataAccess dataAccess;
-
+public class AdminService extends Service {
     public AdminService(DataAccess dataAccess) {
-        this.dataAccess = dataAccess;
+        super(dataAccess);
     }
 
     public void clearApplication() throws CodedException {
