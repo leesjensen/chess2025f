@@ -1,5 +1,6 @@
 package server;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
@@ -9,7 +10,7 @@ import dataaccess.*;
 
 import static utils.StringUtils.*;
 
-import java.util.Map;
+import java.util.*;
 
 public class EndpointManager {
     private final AdminService adminService;
@@ -31,6 +32,7 @@ public class EndpointManager {
         javalin.delete("/session", this::logoutUser);
         javalin.post("/game", this::createGame);
         javalin.get("/game", this::listGames);
+        javalin.put("/game", this::joinGame);
     }
 
 
@@ -86,10 +88,27 @@ public class EndpointManager {
 
     private void listGames(Context context) throws CodedException {
         String authToken = context.header("authorization");
-        var gameList = gameService.listGames(authToken);
+        Collection<GameData> gameList = gameService.listGames(authToken);
 
         var response = Map.of("games", gameList);
         context.json(new Gson().toJson(response));
+    }
+
+    static class JoinGameReq {
+        ChessGame.TeamColor playerColor;
+        int gameID;
+    }
+
+    private void joinGame(Context context) throws CodedException {
+        String authToken = context.header("authorization");
+        JoinGameReq joinGameReq = getBodyObject(context, JoinGameReq.class);
+        if (joinGameReq.playerColor == null) {
+            throw new CodedException(400, "bad request");
+        }
+
+        GameData game = gameService.joinGame(authToken, joinGameReq.playerColor, joinGameReq.gameID);
+
+        context.json(new Gson().toJson(game));
     }
 
     private static <T> T getBodyObject(Context context, Class<T> clazz) {

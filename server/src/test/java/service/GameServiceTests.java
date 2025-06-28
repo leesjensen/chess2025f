@@ -1,5 +1,6 @@
 package service;
 
+import chess.ChessGame;
 import dataaccess.DataAccess;
 import dataaccess.MemoryDataAccess;
 import model.GameData;
@@ -67,4 +68,32 @@ public class GameServiceTests {
         var gameService = new GameService(dataAccess);
         assertThrows(CodedException.class, () -> gameService.listGames("bogusToken"));
     }
+
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("dataAccessImplementations")
+    public void JoinGame(DataAccess dataAccess) throws Exception {
+        var userService = new UserService(dataAccess);
+        var authData = userService.registerUser(new UserData("juan", "too many secrets", "juan@byu.edu"));
+
+        var gameService = new GameService(dataAccess);
+        GameData game = gameService.createGame(authData.authToken(), "testGame");
+        gameService.joinGame(authData.authToken(), ChessGame.TeamColor.WHITE, game.gameID());
+
+        Collection<GameData> games = gameService.listGames(authData.authToken());
+        assertEquals(1, games.size());
+        var returnedGame = games.iterator().next();
+        assertEquals(game.gameID(), returnedGame.gameID());
+        assertEquals(returnedGame.whiteUsername(), "juan");
+        assertEquals(returnedGame.gameName(), "testGame");
+        assertEquals(returnedGame.state(), GameData.State.UNDECIDED);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("dataAccessImplementations")
+    public void JoinGameBadAuthToken(DataAccess dataAccess) {
+        var gameService = new GameService(dataAccess);
+        assertThrows(CodedException.class, () -> gameService.joinGame("bogusToken", ChessGame.TeamColor.WHITE, 1));
+    }
+
 }
