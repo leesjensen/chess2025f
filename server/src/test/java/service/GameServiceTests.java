@@ -2,32 +2,26 @@ package service;
 
 import chess.ChessGame;
 import dataaccess.DataAccess;
-import dataaccess.MemoryDataAccess;
+import dataaccess.DbTests;
 import model.GameData;
 import model.UserData;
-import org.junit.jupiter.api.Named;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collection;
-import java.util.stream.Stream;
+
+import static utils.StringUtils.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class GameServiceTests {
 
-    static Stream<Named<DataAccess>> dataAccessImplementations() {
-        return Stream.of(
-                Named.of("MemoryDataAccess", new MemoryDataAccess())
-        );
-    }
-
-
+public class GameServiceTests extends DbTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("dataAccessImplementations")
     public void CreateGame(DataAccess dataAccess) throws Exception {
         var userService = new UserService(dataAccess);
-        var authData = userService.registerUser(new UserData("juan", "too many secrets", "juan@byu.edu"));
+        var authData = userService.registerUser(randomUser());
 
         var gameService = new GameService(dataAccess);
         GameData game = gameService.createGame(authData.authToken(), "testGame");
@@ -47,7 +41,7 @@ public class GameServiceTests {
     @MethodSource("dataAccessImplementations")
     public void ListGames(DataAccess dataAccess) throws Exception {
         var userService = new UserService(dataAccess);
-        var authData = userService.registerUser(new UserData("juan", "too many secrets", "juan@byu.edu"));
+        var authData = userService.registerUser(randomUser());
 
         var gameService = new GameService(dataAccess);
         Collection<GameData> emptyGameList = gameService.listGames(authData.authToken());
@@ -74,7 +68,7 @@ public class GameServiceTests {
     @MethodSource("dataAccessImplementations")
     public void JoinGame(DataAccess dataAccess) throws Exception {
         var userService = new UserService(dataAccess);
-        var authData = userService.registerUser(new UserData("juan", "too many secrets", "juan@byu.edu"));
+        var authData = userService.registerUser(randomUser());
 
         var gameService = new GameService(dataAccess);
         GameData game = gameService.createGame(authData.authToken(), "testGame");
@@ -84,7 +78,7 @@ public class GameServiceTests {
         assertEquals(1, games.size());
         var returnedGame = games.iterator().next();
         assertEquals(game.gameID(), returnedGame.gameID());
-        assertEquals(returnedGame.whiteUsername(), "juan");
+        assertEquals(returnedGame.whiteUsername(), authData.username());
         assertEquals(returnedGame.gameName(), "testGame");
         assertEquals(returnedGame.state(), GameData.State.UNDECIDED);
     }

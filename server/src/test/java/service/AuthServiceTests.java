@@ -1,31 +1,22 @@
 package service;
 
 import dataaccess.DataAccess;
-import dataaccess.MemoryDataAccess;
+import dataaccess.DbTests;
 import model.UserData;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.Named;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import utils.StringUtils;
 
-import java.util.stream.Stream;
-
-public class AuthServiceTests {
-
-    static Stream<Named<DataAccess>> dataAccessImplementations() {
-        return Stream.of(
-                Named.of("MemoryDataAccess", new MemoryDataAccess())
-        );
-    }
-
+public class AuthServiceTests extends DbTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("dataAccessImplementations")
     public void login(DataAccess dataAccess) throws Exception {
         var userService = new UserService(dataAccess);
-        var user = new UserData("juan", "too many secrets", "juan@byu.edu");
+        var user = randomUser();
         userService.registerUser(user);
 
         var authService = new AuthService(dataAccess);
@@ -42,7 +33,7 @@ public class AuthServiceTests {
     @MethodSource("dataAccessImplementations")
     public void loginBadPassword(DataAccess dataAccess) throws Exception {
         var userService = new UserService(dataAccess);
-        var user = new UserData("juan", "too many secrets", "juan@byu.edu");
+        var user = randomUser();
         userService.registerUser(user);
 
         var authService = new AuthService(dataAccess);
@@ -61,7 +52,7 @@ public class AuthServiceTests {
     @MethodSource("dataAccessImplementations")
     public void logout(DataAccess dataAccess) throws Exception {
         var userService = new UserService(dataAccess);
-        var user = new UserData("juan", "too many secrets", "juan@byu.edu");
+        var user = randomUser();
         var authData = userService.registerUser(user);
 
         var authService = new AuthService(dataAccess);

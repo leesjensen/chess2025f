@@ -10,27 +10,36 @@ import java.util.Map;
 
 public class Server {
 
-    private final Javalin javalin;
-    private final EndpointManager endpointManager;
+    private Javalin javalin;
+    private EndpointManager endpointManager;
 
     public Server() {
-        javalin = Javalin.create(config -> config.staticFiles.add("web"));
+        try {
+            javalin = Javalin.create(config -> config.staticFiles.add("web"));
 
-        DataAccess dataAccess = new MemoryDataAccess();
-        endpointManager = new EndpointManager(dataAccess);
-        endpointManager.register(javalin);
+            DataAccess dataAccess = new MySqlDataAccess(new DatabaseManager());
+            endpointManager = new EndpointManager(dataAccess);
+            endpointManager.register(javalin);
 
-        javalin.exception(Exception.class, (e, context) -> exceptionHandler(new CodedException(500, e.getMessage()), context));
-        javalin.exception(CodedException.class, this::exceptionHandler);
+            javalin.exception(Exception.class, (e, context) -> exceptionHandler(new CodedException(500, e.getMessage()), context));
+            javalin.exception(CodedException.class, this::exceptionHandler);
+        } catch (DataAccessException ex) {
+            System.out.println("Unable to start server " + ex);
+        }
     }
 
     public int run(int desiredPort) {
-        javalin.start(desiredPort);
-        return javalin.port();
+        if (javalin != null) {
+            javalin.start(desiredPort);
+            return javalin.port();
+        }
+        return 0;
     }
 
     public void stop() {
-        javalin.stop();
+        if (javalin != null) {
+            javalin.stop();
+        }
     }
 
     private void exceptionHandler(CodedException e, Context context) {

@@ -15,7 +15,7 @@ public class UserService extends Service {
             UserData newUser = dataAccess.createUser(user);
             return dataAccess.createAuth(newUser.username());
         } catch (DataAccessException ex) {
-            throw new CodedException(403, "Unable to register user");
+            throw new CodedException(403, "Unable to register user", ex);
         }
     }
 }

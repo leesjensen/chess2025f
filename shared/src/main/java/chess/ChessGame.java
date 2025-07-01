@@ -1,6 +1,7 @@
 package chess;
 
 import com.google.gson.Gson;
+import model.GameData;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -204,6 +205,12 @@ public class ChessGame {
         result = 31 * result + (turn != null ? turn.hashCode() : 0);
         return result;
     }
+
+
+    public static ChessGame fromString(String serializedGame) {
+        return new Gson().fromJson(serializedGame, ChessGame.class);
+    }
+
 
     @Override
     public String toString() {

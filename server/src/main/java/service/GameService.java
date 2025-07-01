@@ -18,7 +18,7 @@ public class GameService extends Service {
         try {
             return dataAccess.listGames();
         } catch (DataAccessException ex) {
-            throw new CodedException(500, "Server error");
+            throw new CodedException(500, "Server error", ex);
         }
     }
 
@@ -27,7 +27,7 @@ public class GameService extends Service {
         try {
             return dataAccess.createGame(gameName);
         } catch (DataAccessException ex) {
-            throw new CodedException(500, "Server error");
+            throw new CodedException(500, "Server error", ex);
         }
     }
 
@@ -59,8 +59,8 @@ public class GameService extends Service {
                 dataAccess.updateGame(gameData);
             }
             return gameData;
-        } catch (DataAccessException ignored) {
-            throw new CodedException(500, "Server error");
+        } catch (DataAccessException ex) {
+            throw new CodedException(500, "Server error", ex);
         }
     }
 

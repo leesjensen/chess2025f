@@ -75,4 +75,10 @@ public class MemoryDataAccess implements DataAccess {
     public void deleteAuth(String authToken) {
         auths.remove(authToken);
     }
+
+
+    public String toString() {
+        return String.format("Memory");
+    }
+
 }

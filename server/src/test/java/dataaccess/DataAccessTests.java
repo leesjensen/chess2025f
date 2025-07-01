@@ -2,26 +2,17 @@ package dataaccess;
 
 import model.UserData;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
-import java.util.stream.Stream;
 
-public class DataAccessTests {
-
-
-    static Stream<Named<DataAccess>> dataAccessImplementations() {
-        return Stream.of(
-                Named.of("MemoryDataAccess", new MemoryDataAccess())
-        );
-    }
+public class DataAccessTests extends DbTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("dataAccessImplementations")
     public void writeReadUser(DataAccess dataAccess) throws Exception {
-        var user = new UserData("juan", "too many secrets", "juan@byu.edu");
+        var user = randomUser();
 
         Assertions.assertEquals(user, dataAccess.createUser(user));
         Assertions.assertEquals(user, dataAccess.getUser(user.username()));
@@ -30,7 +21,7 @@ public class DataAccessTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("dataAccessImplementations")
     public void writeReadAuth(DataAccess dataAccess) throws Exception {
-        var user = new UserData("juan", "too many secrets", "juan@byu.edu");
+        var user = randomUser();
 
         var authData = dataAccess.createAuth(user.username());
         Assertions.assertEquals(user.username(), authData.username());

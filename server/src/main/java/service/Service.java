@@ -24,7 +24,7 @@ public abstract class Service {
 
             throw new CodedException(401, "Not authorized");
         } catch (DataAccessException ex) {
-            throw new CodedException(500, "Internal server error");
+            throw new CodedException(500, "Internal server error", ex);
         }
     }
 

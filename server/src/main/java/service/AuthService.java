@@ -16,7 +16,7 @@ public class AuthService extends Service {
             }
             throw new CodedException(401, "Invalid username or password");
         } catch (DataAccessException ex) {
-            throw new CodedException(500, "Internal server error");
+            throw new CodedException(500, "Internal server error", ex);
         }
     }
 
@@ -25,7 +25,7 @@ public class AuthService extends Service {
             getAuthData(authToken);
             dataAccess.deleteAuth(authToken);
         } catch (DataAccessException ex) {
-            throw new CodedException(500, "Internal server error");
+            throw new CodedException(500, "Internal server error", ex);
         }
     }
 }

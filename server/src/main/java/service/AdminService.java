@@ -12,7 +12,7 @@ public class AdminService extends Service {
         try {
             dataAccess.clear();
         } catch (DataAccessException ex) {
-            throw new CodedException(500, "Server error");
+            throw new CodedException(500, "Server error", ex);
         }
     }
 }
