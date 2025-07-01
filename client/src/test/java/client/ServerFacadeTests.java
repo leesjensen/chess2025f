@@ -130,15 +130,12 @@ public class ServerFacadeTests {
     }
 
     @Test
-    public void joinGameObserver() throws Exception {
+    public void joinGameNoColor() throws Exception {
         UserData user = randomUser();
         AuthData authData = serverFacade.register(user.username(), user.password(), user.email());
         var gameName = StringUtils.randomString();
         var game = serverFacade.createGame(authData.authToken(), gameName);
-        var joinedGame = serverFacade.joinGame(authData.authToken(), game.gameID(), null);
-        assertEquals(game.gameID(), joinedGame.gameID());
-        assertNull(joinedGame.whiteUsername());
-        assertNull(joinedGame.blackUsername());
+        assertThrows(Exception.class, () -> serverFacade.joinGame(authData.authToken(), game.gameID(), null));
     }
 
     @Test

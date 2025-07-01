@@ -97,6 +97,9 @@ public class EndpointManager {
     private void joinGame(Context context) throws CodedException {
         String authToken = context.header("authorization");
         JoinGameReq joinGameReq = getBodyObject(context, JoinGameReq.class);
+        if (joinGameReq.playerColor() == null) {
+            throw new CodedException(400, "bad request");
+        }
 
         GameData game = gameService.joinGame(authToken, joinGameReq.playerColor(), joinGameReq.gameID());
         context.json(new Gson().toJson(game));

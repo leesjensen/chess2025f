@@ -62,9 +62,9 @@ public class ChessClient {
                 result = String.format("Unknown command\n%s", help(params));
             }
         } catch (InvocationTargetException e) {
-            result = String.format("Error: %s", e.getCause().getMessage());
+            result = e.getCause().getMessage();
         } catch (Throwable e) {
-            result = String.format("Error: %s", e.getMessage());
+            result = e.getMessage();
         }
         return result;
     }
@@ -136,14 +136,18 @@ public class ChessClient {
         var gameList = server.listGames(authToken);
         games = Arrays.stream(gameList).toList();
 
-        int pos = 1;
-        StringBuilder buf = new StringBuilder("games\n--------------------\n");
-        for (var game : games) {
-            var gameText = String.format("%d. %s white:%s black:%s state: %s%n", pos, game.gameName(), game.whiteUsername(), game.blackUsername(), game.state());
-            buf.append(gameText);
-            pos++;
+        if (games.size() > 0) {
+            int pos = 1;
+            StringBuilder buf = new StringBuilder("Games:\n———————————————————————————————\n");
+            for (var game : games) {
+                var gameText = String.format("%d. %s white:%s black:%s state: %s%n", pos, game.gameName(), game.whiteUsername(), game.blackUsername(), game.state());
+                buf.append(gameText);
+                pos++;
+            }
+            return buf.toString();
         }
-        return buf.toString();
+
+        return "No games. Perhaps you would like to create one?";
     }
 
     private String join(String[] params) throws Exception {
@@ -157,7 +161,7 @@ public class ChessClient {
         userState = (color == ChessGame.TeamColor.WHITE ? State.WHITE : State.BLACK);
         this.gameData = server.joinGame(authToken, game.gameID(), color);
         printGame(color, null);
-        return String.format("Joined %d as %s", game.gameID(), color);
+        return String.format("Joined %s as %s", game.gameName(), color);
     }
 
     private String observe(String[] params) throws Exception {
@@ -167,7 +171,7 @@ public class ChessClient {
             throw new Exception("Already in game");
         }
 
-        this.gameData = server.joinGame(authToken, game.gameID(), null);
+        this.gameData = new GameData(0, "", "", "", new ChessGame(), GameData.State.UNDECIDED);
         userState = State.OBSERVING;
         printGame();
         return String.format("Joined %d as observer", game.gameID());
