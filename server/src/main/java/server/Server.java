@@ -11,14 +11,13 @@ import java.util.Map;
 public class Server {
 
     private Javalin javalin;
-    private EndpointManager endpointManager;
 
     public Server() {
         try {
             javalin = Javalin.create(config -> config.staticFiles.add("web"));
 
-            DataAccess dataAccess = new MySqlDataAccess(new DatabaseManager());
-            endpointManager = new EndpointManager(dataAccess);
+            DataAccess dataAccess = new MySqlDataAccess();
+            var endpointManager = new EndpointManager(dataAccess);
             endpointManager.register(javalin);
 
             javalin.exception(Exception.class, (e, context) -> exceptionHandler(new CodedException(500, e.getMessage()), context));

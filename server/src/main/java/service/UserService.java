@@ -3,6 +3,7 @@ package service;
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
 import model.*;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class UserService extends Service {
     public UserService(DataAccess dataAccess) {
@@ -12,10 +13,13 @@ public class UserService extends Service {
 
     public AuthData registerUser(UserData user) throws CodedException {
         try {
-            UserData newUser = dataAccess.createUser(user);
+            String hashedPassword = BCrypt.hashpw(user.password(), BCrypt.gensalt());
+            var encryptedUser = new UserData(user.username(), hashedPassword, user.email());
+            UserData newUser = dataAccess.createUser(encryptedUser);
             return dataAccess.createAuth(newUser.username());
         } catch (DataAccessException ex) {
-            throw new CodedException(403, "Unable to register user", ex);
+            var statusCode = ex.statusCode() != 0 ? ex.statusCode() : 500;
+            throw new CodedException(statusCode, "Unable to register user", ex);
         }
     }
 }

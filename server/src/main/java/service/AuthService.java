@@ -2,6 +2,7 @@ package service;
 
 import dataaccess.*;
 import model.*;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class AuthService extends Service {
     public AuthService(DataAccess dataAccess) {
@@ -10,9 +11,9 @@ public class AuthService extends Service {
 
     public AuthData createSession(UserData user) throws CodedException {
         try {
-            UserData loggedInUser = dataAccess.getUser(user.username());
-            if (loggedInUser != null && loggedInUser.password().equals(user.password())) {
-                return dataAccess.createAuth(loggedInUser.username());
+            UserData existingUser = dataAccess.getUser(user.username());
+            if (existingUser != null && BCrypt.checkpw(user.password(), existingUser.password())) {
+                return dataAccess.createAuth(existingUser.username());
             }
             throw new CodedException(401, "Invalid username or password");
         } catch (DataAccessException ex) {

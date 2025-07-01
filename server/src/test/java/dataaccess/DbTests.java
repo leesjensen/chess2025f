@@ -11,19 +11,17 @@ import java.util.stream.Stream;
 import static utils.StringUtils.randomString;
 
 public abstract class DbTests {
-    protected static DatabaseManager dbMgr;
     protected static DataAccess db;
 
     @BeforeAll
     static void createDb() throws Exception {
-        dbMgr = new DatabaseManager(new DatabaseConfig("test_chess"));
-        db = new MySqlDataAccess(dbMgr);
+        db = new MySqlDataAccess();
     }
 
 
     @AfterAll
     static void deleteDb() throws Exception {
-        dbMgr.deleteDatabase();
+        db.clear();
     }
 
 
@@ -38,7 +36,7 @@ public abstract class DbTests {
         return new UserData(name, "too many secrets", name + "@byu.edu");
     }
 
-    static Stream<Named<DataAccess>> dataAccessImplementations() throws Exception {
+    static Stream<Named<DataAccess>> dataAccessImplementations() {
         return Stream.of(
                 Named.of("MemoryDataAccess", new MemoryDataAccess()),
                 Named.of("MySqlDataAccess", db)
