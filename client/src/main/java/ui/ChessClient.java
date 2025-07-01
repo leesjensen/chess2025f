@@ -2,7 +2,9 @@ package ui;
 
 import chess.ChessGame;
 import chess.ChessPosition;
+import model.AuthData;
 import model.GameData;
+import service.ServerFacade;
 import utils.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -11,12 +13,15 @@ import java.util.*;
 import static ui.EscapeSequences.*;
 
 public class ChessClient {
-
+    final private ServerFacade server;
     private State userState = State.LOGGED_OUT;
-    private String username = "";
     private String authToken;
     private GameData gameData;
-    private ArrayList<GameData> games = new ArrayList<>();
+    private List<GameData> games = new ArrayList<>();
+
+    public ChessClient() throws Exception {
+        server = new ServerFacade("http://localhost:8080");
+    }
 
     public void run() {
         System.out.println("👑 Welcome to 240 chess. Type Help to get started. 👑");
@@ -87,9 +92,9 @@ public class ChessClient {
         var username = getStringParam("username", params, 0);
         var password = getStringParam("password", params, 1);
 
+        AuthData authData = server.login(username, password);
         userState = State.LOGGED_IN;
-        authToken = "x";
-        this.username = username;
+        authToken = authData.authToken();
         return String.format("Logged in as %s", username);
     }
 
@@ -101,18 +106,18 @@ public class ChessClient {
         var password = getStringParam("password", params, 1);
         var email = getStringParam("email", params, 2);
 
+        AuthData authData = server.register(username, password, email);
         userState = State.LOGGED_IN;
-        authToken = "x";
-        this.username = username;
+        authToken = authData.authToken();
         return String.format("Logged in as %s", username);
     }
 
     private String logout(String[] ignore) throws Exception {
         verifyAuth();
 
+        server.logout(authToken);
         userState = State.LOGGED_OUT;
         authToken = null;
-        this.username = "";
         return "Logged out";
     }
 
@@ -120,14 +125,16 @@ public class ChessClient {
         verifyAuth();
         var gameName = getStringParam("game name", params, 0);
 
-        var game = new GameData(300, "", "", gameName, new ChessGame(), GameData.State.UNDECIDED);
-        games.add(game);
+        server.createGame(authToken, gameName);
 
         return String.format("Created %s", gameName);
     }
 
-    private String list(String[] ignore) throws Exception {
+    private String list(String[] params) throws Exception {
         verifyAuth();
+
+        var gameList = server.listGames(authToken);
+        games = Arrays.stream(gameList).toList();
 
         int pos = 1;
         StringBuilder buf = new StringBuilder("games\n--------------------\n");
@@ -147,15 +154,9 @@ public class ChessClient {
             throw new Exception("Already in game");
         }
 
-        if (color == ChessGame.TeamColor.WHITE) {
-            game = game.setWhite(username);
-            userState = State.WHITE;
-        } else {
-            game = game.setBlack(username);
-            userState = State.BLACK;
-        }
-
-        this.gameData = game;
+        userState = (color == ChessGame.TeamColor.WHITE ? State.WHITE : State.BLACK);
+        this.gameData = server.joinGame(authToken, game.gameID(), color);
+        printGame(color, null);
         return String.format("Joined %d as %s", game.gameID(), color);
     }
 
@@ -166,8 +167,9 @@ public class ChessClient {
             throw new Exception("Already in game");
         }
 
+        this.gameData = server.joinGame(authToken, game.gameID(), null);
         userState = State.OBSERVING;
-        this.gameData = game;
+        printGame();
         return String.format("Joined %d as observer", game.gameID());
     }
 
@@ -324,7 +326,7 @@ public class ChessClient {
     private GameData getGame(String[] params, int pos) throws Exception {
         var gamePos = getIntParam("game Pos", params, 0) - 1;
         if (gamePos >= 0 && gamePos >= games.size()) {
-            throw new Exception("invalid game position");
+            throw new Exception("invalid game requested");
         }
 
         return games.get(gamePos);
