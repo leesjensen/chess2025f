@@ -1,6 +1,5 @@
 package server;
 
-import chess.ChessGame;
 import com.google.gson.Gson;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
@@ -94,20 +93,12 @@ public class EndpointManager {
         context.json(new Gson().toJson(response));
     }
 
-    static class JoinGameReq {
-        ChessGame.TeamColor playerColor;
-        int gameID;
-    }
 
     private void joinGame(Context context) throws CodedException {
         String authToken = context.header("authorization");
         JoinGameReq joinGameReq = getBodyObject(context, JoinGameReq.class);
-        if (joinGameReq.playerColor == null) {
-            throw new CodedException(400, "bad request");
-        }
 
-        GameData game = gameService.joinGame(authToken, joinGameReq.playerColor, joinGameReq.gameID);
-
+        GameData game = gameService.joinGame(authToken, joinGameReq.playerColor(), joinGameReq.gameID());
         context.json(new Gson().toJson(game));
     }
 
