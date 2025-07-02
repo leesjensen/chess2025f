@@ -260,7 +260,7 @@ public class ChessClient {
             new Help("leave", "the game"),
             new Help("move <crcr> [q|r|b|n]", "a piece with optional promotion"),
             new Help("resign", "the game without leaving it"),
-            new Help("legal <cr>", "moves a given piece"),
+            new Help("legal <cr>", "moves for piece"),
             new Help("quit", "playing chess"),
             new Help("help", "with possible commands")
     );
