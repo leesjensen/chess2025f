@@ -160,7 +160,7 @@ public class ChessClient {
 
         userState = (color == ChessGame.TeamColor.WHITE ? State.WHITE : State.BLACK);
         this.gameData = server.joinGame(authToken, game.gameID(), color);
-        printGame(color, null);
+        printGame(null);
         return String.format("Joined %s as %s", game.gameName(), color);
     }
 
@@ -193,7 +193,14 @@ public class ChessClient {
             throw new Exception("No game being played");
         }
 
-        printGame();
+        var pos = new ChessPosition(params[0]);
+        var highlights = new ArrayList<ChessPosition>();
+        highlights.add(pos);
+        for (var move : gameData.game().validMoves(pos)) {
+            highlights.add(move.getEndPosition());
+        }
+
+        printGame(highlights);
         return "";
     }
 
@@ -298,11 +305,11 @@ public class ChessClient {
     }
 
     private void printGame() {
-        var color = userState == State.BLACK ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
-        printGame(color, null);
+        printGame(null);
     }
 
-    private void printGame(ChessGame.TeamColor color, Collection<ChessPosition> highlights) {
+    private void printGame(Collection<ChessPosition> highlights) {
+        var color = userState == State.BLACK ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
         System.out.println("\n");
         System.out.print((gameData.game().getBoard()).toString(color, highlights));
         System.out.println();

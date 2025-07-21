@@ -1,5 +1,6 @@
 package chess;
 
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -16,6 +17,19 @@ public class ChessPosition {
     public ChessPosition(int row, int col) {
         this.row = row;
         this.col = col;
+    }
+
+
+    public ChessPosition(String notation) throws Exception {
+        notation = notation.toLowerCase(Locale.ROOT);
+        if (notation.length() == 2) {
+            col = notation.charAt(0) - 'a' + 1;
+            row = notation.charAt(1) - '1' + 1;
+            if (col >= 1 && col <= 8 && row >= 1 && row <= 8) {
+                return;
+            }
+        }
+        throw new Exception("Invalid notation. Must be like A2");
     }
 
     /**
