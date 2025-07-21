@@ -136,7 +136,7 @@ public class ChessClient {
         var gameList = server.listGames(authToken);
         games = Arrays.stream(gameList).toList();
 
-        if (games.size() > 0) {
+        if (!games.isEmpty()) {
             int pos = 1;
             StringBuilder buf = new StringBuilder("Games:\n———————————————————————————————\n");
             for (var game : games) {
