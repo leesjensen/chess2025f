@@ -19,7 +19,7 @@ public class ChessClient {
     private GameData gameData;
     private List<GameData> games = new ArrayList<>();
 
-    public ChessClient() throws Exception {
+    public ChessClient() {
         server = new ServerFacade("http://localhost:8080");
     }
 
