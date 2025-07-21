@@ -33,4 +33,16 @@ public record GameData(int gameID, String whiteUsername, String blackUsername, S
     public String toString() {
         return new Gson().toJson(this);
     }
+
+    public String display() {
+        return String.format("%s white:%s black:%s state:%s", name(gameName), name(whiteUsername), name(blackUsername), state);
+
+    }
+
+    private String name(String name) {
+        if (name == null) {
+            return "NONE";
+        }
+        return name;
+    }
 }

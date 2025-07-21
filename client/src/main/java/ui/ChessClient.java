@@ -140,7 +140,7 @@ public class ChessClient {
             int pos = 1;
             StringBuilder buf = new StringBuilder("Games:\n———————————————————————————————\n");
             for (var game : games) {
-                var gameText = String.format("%d. %s white:%s black:%s state: %s%n", pos, game.gameName(), game.whiteUsername(), game.blackUsername(), game.state());
+                var gameText = String.format("%d. %s%n", pos, game.display());
                 buf.append(gameText);
                 pos++;
             }
