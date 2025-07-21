@@ -4,6 +4,7 @@ import chess.ChessGame;
 import chess.ChessPosition;
 import model.AuthData;
 import model.GameData;
+import service.DisplayHandler;
 import service.ServerFacade;
 import utils.StringUtils;
 
@@ -12,15 +13,15 @@ import java.util.*;
 
 import static ui.EscapeSequences.*;
 
-public class ChessClient {
+public class ChessClient implements DisplayHandler {
     final private ServerFacade server;
     private State userState = State.LOGGED_OUT;
     private String authToken;
     private GameData gameData;
     private List<GameData> games = new ArrayList<>();
 
-    public ChessClient() {
-        server = new ServerFacade("http://localhost:8080");
+    public ChessClient(String serverUrl) throws Exception {
+        server = new ServerFacade(serverUrl, this);
     }
 
     public void run() {
@@ -159,8 +160,8 @@ public class ChessClient {
         }
 
         userState = (color == ChessGame.TeamColor.WHITE ? State.WHITE : State.BLACK);
-        this.gameData = server.joinGame(authToken, game.gameID(), color);
-        printGame(null);
+        server.joinGame(authToken, game.gameID(), color);
+
         return String.format("Joined %s as %s", game.gameName(), color);
     }
 
@@ -168,13 +169,10 @@ public class ChessClient {
         verify(authenticated() && !playing() && !observing());
 
         var game = getGame(params, 0);
-        if (playing() || observing()) {
-            throw new Exception("Already in game");
-        }
+        server.observeGame(authToken, game.gameID());
 
-        this.gameData = new GameData(0, "", "", "", new ChessGame(), GameData.State.UNDECIDED);
         userState = State.OBSERVING;
-        printGame();
+
         return String.format("Joined %d as observer", game.gameID());
     }
 
@@ -220,6 +218,11 @@ public class ChessClient {
         userState = State.LOGGED_IN;
         gameData = null;
         return "Resigned game";
+    }
+
+    @Override
+    public void process(String message) {
+        System.out.println(message);
     }
 
 

@@ -20,6 +20,8 @@ public class Server {
             var endpointManager = new EndpointManager(dataAccess);
             endpointManager.register(javalin);
 
+            new WebsocketServer(javalin);
+
             javalin.exception(Exception.class, (e, context) -> exceptionHandler(new CodedException(500, e.getMessage()), context));
             javalin.exception(CodedException.class, this::exceptionHandler);
         } catch (DataAccessException ex) {

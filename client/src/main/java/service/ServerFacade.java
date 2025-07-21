@@ -4,6 +4,7 @@ import chess.ChessGame;
 import com.google.gson.Gson;
 import model.AuthData;
 import model.GameData;
+import service.WebSocketFacade;
 
 import java.net.URI;
 import java.net.http.*;
@@ -14,10 +15,12 @@ public class ServerFacade {
 
     private final String serverUrl;
     private final HttpClient httpClient;
+    private final WebSocketFacade webSocket;
 
-    public ServerFacade(String url) {
+    public ServerFacade(String url, DisplayHandler displayHandler) throws Exception {
         serverUrl = url;
         httpClient = HttpClient.newHttpClient();
+        webSocket = new WebSocketFacade(serverUrl, displayHandler);
     }
 
 
@@ -54,7 +57,12 @@ public class ServerFacade {
     public GameData joinGame(String authToken, int gameID, ChessGame.TeamColor color) throws Exception {
         var request = new JoinGameReq(color, gameID);
         this.makeRequest("PUT", "/game", request, authToken, GameData.class);
+        webSocket.connect(authToken, gameID);
         return getGame(authToken, gameID);
+    }
+
+    public void observeGame(String authToken, int gameID) throws Exception {
+        webSocket.connect(authToken, gameID);
     }
 
     private GameData getGame(String authToken, int gameID) throws Exception {
