@@ -113,7 +113,7 @@ public class ChessClient {
     }
 
     private String logout(String[] ignore) throws Exception {
-        verifyAuth();
+        verify(authenticated());
 
         server.logout(authToken);
         userState = State.LOGGED_OUT;
@@ -122,16 +122,15 @@ public class ChessClient {
     }
 
     private String create(String[] params) throws Exception {
-        verifyAuth();
+        verify(authenticated());
+
         var gameName = getStringParam("game name", params, 0);
-
         server.createGame(authToken, gameName);
-
         return String.format("Created %s", gameName);
     }
 
     private String list(String[] params) throws Exception {
-        verifyAuth();
+        verify(authenticated());
 
         var gameList = server.listGames(authToken);
         games = Arrays.stream(gameList).toList();
@@ -151,10 +150,11 @@ public class ChessClient {
     }
 
     private String join(String[] params) throws Exception {
-        verifyAuth();
+        verify(authenticated() && !playing() && !observing());
+
         var game = getGame(params, 0);
         var color = getColor(params, 1);
-        if (isPlaying() || isObserving()) {
+        if (playing() || observing()) {
             throw new Exception("Already in game");
         }
 
@@ -165,9 +165,10 @@ public class ChessClient {
     }
 
     private String observe(String[] params) throws Exception {
-        verifyAuth();
+        verify(authenticated() && !playing() && !observing());
+
         var game = getGame(params, 0);
-        if (isPlaying() || isObserving()) {
+        if (playing() || observing()) {
             throw new Exception("Already in game");
         }
 
@@ -178,20 +179,14 @@ public class ChessClient {
     }
 
     private String redraw(String[] params) throws Exception {
-        verifyAuth();
-        if (!isPlaying() && !isObserving()) {
-            throw new Exception("No game being played");
-        }
+        verify(playing() || observing());
 
         printGame();
         return "";
     }
 
     private String legal(String[] params) throws Exception {
-        verifyAuth();
-        if (!isPlaying() && !isObserving()) {
-            throw new Exception("No game being played");
-        }
+        verify(playing() || observing());
 
         var pos = new ChessPosition(params[0]);
         var highlights = new ArrayList<ChessPosition>();
@@ -205,18 +200,14 @@ public class ChessClient {
     }
 
     private String move(String[] params) throws Exception {
-        verifyAuth();
-        if (!isPlaying()) {
-            throw new Exception("No game being played");
-        }
+        verify(playing());
+
         var move = getStringParam("move", params, 0);
         return String.format("move %s", move);
     }
 
     private String leave(String[] params) throws Exception {
-        if (!isPlaying() && !isObserving()) {
-            throw new Exception("No game being played");
-        }
+        verify(playing() || observing());
 
         userState = State.LOGGED_IN;
         gameData = null;
@@ -224,13 +215,11 @@ public class ChessClient {
     }
 
     private String resign(String[] params) throws Exception {
-        if (!isPlaying() && !isObserving()) {
-            throw new Exception("No game being played");
-        }
+        verify(playing());
 
         userState = State.LOGGED_IN;
         gameData = null;
-        return "Left game";
+        return "Resigned game";
     }
 
 
@@ -281,27 +270,31 @@ public class ChessClient {
 
     }
 
-    private void verifyAuth() throws Exception {
-        if (userState == State.LOGGED_OUT || authToken == null) {
-            throw new Exception("Please login or register");
+    private void verify(boolean expected) throws Exception {
+        if (!expected) {
+            throw new Exception("Bad request");
         }
     }
 
-    public boolean isPlaying() {
-        return (gameData != null && (userState == State.WHITE || userState == State.BLACK) && !isGameOver());
+    private boolean authenticated() {
+        return (userState != State.LOGGED_OUT && authToken != null);
+    }
+
+    public boolean playing() {
+        return (authenticated() && gameData != null && (userState == State.WHITE || userState == State.BLACK) && !gameOver());
     }
 
 
-    public boolean isObserving() {
-        return (gameData != null && (userState == State.OBSERVING));
+    public boolean observing() {
+        return (authenticated() && gameData != null && (userState == State.OBSERVING));
     }
 
-    public boolean isGameOver() {
+    public boolean gameOver() {
         return (gameData != null && gameData.isGameOver());
     }
 
-    public boolean isTurn() {
-        return (isPlaying() && userState.isTurn(gameData.game().getTeamTurn()));
+    public boolean isMyTurn() {
+        return (playing() && userState.isTurn(gameData.game().getTeamTurn()));
     }
 
     private void printGame() {
