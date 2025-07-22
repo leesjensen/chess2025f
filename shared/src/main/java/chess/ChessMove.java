@@ -1,5 +1,6 @@
 package chess;
 
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -20,6 +21,34 @@ public class ChessMove {
         this.endPosition = endPosition;
         this.promotionPiece = promotionPiece;
     }
+
+
+    public ChessMove(String notation) throws Exception {
+        notation = notation.toLowerCase(Locale.ROOT);
+        if (notation.length() >= 4) {
+            int colStart = notation.charAt(0) - 'a' + 1;
+            int rowStart = notation.charAt(1) - '1' + 1;
+            int colEnd = notation.charAt(2) - 'a' + 1;
+            int rowEnd = notation.charAt(3) - '1' + 1;
+
+            startPosition = new ChessPosition(rowStart, colStart);
+            endPosition = new ChessPosition(rowEnd, colEnd);
+            if (notation.length() == 5) {
+                promotionPiece = switch (notation.charAt(4)) {
+                    case 'q' -> ChessPiece.PieceType.QUEEN;
+                    case 'b' -> ChessPiece.PieceType.BISHOP;
+                    case 'n' -> ChessPiece.PieceType.KNIGHT;
+                    case 'r' -> ChessPiece.PieceType.ROOK;
+                    default -> null;
+                };
+            } else {
+                promotionPiece = null;
+            }
+            return;
+        }
+        throw new Exception("Invalid move notation");
+    }
+
 
     /**
      * @return ChessPosition of starting location

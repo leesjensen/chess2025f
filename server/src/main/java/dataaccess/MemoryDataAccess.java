@@ -36,7 +36,7 @@ public class MemoryDataAccess implements DataAccess {
     @Override
     public GameData createGame(String gameName) {
         var gameID = nextID++;
-        var gameData = new GameData(gameID, null, null, gameName, new ChessGame(), GameData.State.UNDECIDED);
+        var gameData = new GameData(gameID, null, null, gameName, new ChessGame(), GameData.State.UNDECIDED, "Game created");
         games.put(gameData.gameID(), gameData);
         gameData.game().getBoard().resetBoard();
         gameData.game().setTeamTurn(ChessGame.TeamColor.WHITE);

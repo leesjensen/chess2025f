@@ -1,6 +1,7 @@
 package ui;
 
 import chess.ChessGame;
+import chess.ChessMove;
 import chess.ChessPosition;
 import model.AuthData;
 import model.GameData;
@@ -198,8 +199,9 @@ public class ChessClient implements MessageObserver {
     private String move(String[] params) throws Exception {
         verify(playing());
 
-        var move = getStringParam("move", params, 0);
-        return String.format("move %s", move);
+        var move = new ChessMove(getStringParam("move", params, 0));
+        server.makeMove(authToken, currentGame.gameID(), move);
+        return String.format("moved %s", move);
     }
 
     private String leave(String[] params) throws Exception {
@@ -226,6 +228,7 @@ public class ChessClient implements MessageObserver {
     public void loadGame(GameData gameData) {
         currentGame = gameData;
         printGame();
+
     }
 
 
@@ -312,6 +315,7 @@ public class ChessClient implements MessageObserver {
         System.out.println("\n");
         System.out.print((currentGame.game().getBoard()).toString(color, highlights));
         System.out.println();
+        System.out.printf("%s%n", currentGame.description());
     }
 
     private String getStringParam(String name, String[] params, int pos) throws Exception {

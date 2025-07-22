@@ -2,6 +2,7 @@ package server;
 
 
 import io.javalin.websocket.WsContext;
+import websocket.messages.ServerMessage;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,12 +18,12 @@ public class ConnectionManager {
         connections.remove(ctx.sessionId());
     }
 
-    public void broadcast(int gameID, String excludeSessionID, String msg) {
+    public void broadcast(int gameID, String excludeSessionID, ServerMessage msg) {
         var removeList = new ArrayList<Connection>();
         for (var c : connections.values()) {
             if (c.isOpen()) {
                 if (c.gameID() == gameID && !c.ctx().sessionId().equals(excludeSessionID)) {
-                    c.sendNotification(msg);
+                    c.send(msg);
                 }
             } else {
                 removeList.add(c);

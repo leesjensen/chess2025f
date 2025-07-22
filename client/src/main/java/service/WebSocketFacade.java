@@ -1,11 +1,15 @@
 package service;
 
+import chess.ChessMove;
 import com.google.gson.Gson;
 
 import jakarta.websocket.*;
 import model.GameData;
+import websocket.commands.MakeMoveCommand;
 import websocket.commands.UserGameCommand;
+import websocket.messages.ErrorMessage;
 import websocket.messages.LoadMessage;
+import websocket.messages.NotificationMessage;
 import websocket.messages.ServerMessage;
 
 import java.io.IOException;
@@ -38,11 +42,28 @@ public class WebSocketFacade extends Endpoint {
                 ServerMessage message = new Gson().fromJson(messageText, ServerMessage.class);
                 switch (message.getServerMessageType()) {
                     case LOAD_GAME -> loadGame(new Gson().fromJson(messageText, LoadMessage.class));
-                    case ERROR -> error(message);
-                    case NOTIFICATION -> notification(message);
+                    case ERROR -> error(new Gson().fromJson(messageText, ErrorMessage.class));
+                    case NOTIFICATION -> notification(new Gson().fromJson(messageText, NotificationMessage.class));
                 }
             }
         });
+    }
+
+    public void connect(String authToken, int gameID) throws IOException {
+        sendCommand(new UserGameCommand(UserGameCommand.CommandType.CONNECT, authToken, gameID));
+    }
+
+    public void makeMove(String authToken, int gameID, ChessMove move) throws IOException {
+        sendCommand(new MakeMoveCommand(authToken, gameID, move));
+    }
+
+
+    private void sendCommand(UserGameCommand command) throws IOException {
+        sendMessage(command.toString());
+    }
+
+    private void sendMessage(String message) throws IOException {
+        session.getBasicRemote().sendText(message);
     }
 
 
@@ -50,27 +71,15 @@ public class WebSocketFacade extends Endpoint {
         responseHandler.loadGame(message.game);
     }
 
-    private void error(ServerMessage message) {
-        responseHandler.notify(message.toString());
+    private void error(ErrorMessage message) {
+        responseHandler.notify(String.format("ERROR: %s", message.getErrorMessage()));
     }
 
-    private void notification(ServerMessage message) {
-        responseHandler.notify(message.toString());
+    private void notification(NotificationMessage message) {
+        responseHandler.notify(String.format("INFO: %s", message.getMessage()));
     }
 
     public void onOpen(Session session, EndpointConfig endpointConfig) {
-    }
-
-    public void connect(String authToken, int gameID) throws IOException {
-        sendCommand(new UserGameCommand(UserGameCommand.CommandType.CONNECT, authToken, gameID));
-    }
-
-    public void sendCommand(UserGameCommand command) throws IOException {
-        sendMessage(command.toString());
-    }
-
-    public void sendMessage(String message) throws IOException {
-        session.getBasicRemote().sendText(message);
     }
 }
 

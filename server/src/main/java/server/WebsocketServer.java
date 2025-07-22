@@ -3,10 +3,14 @@ package server;
 import com.google.gson.Gson;
 import io.javalin.Javalin;
 import io.javalin.websocket.*;
+import model.GameData;
 import service.CodedException;
 import service.GameService;
+import websocket.commands.MakeMoveCommand;
 import websocket.commands.UserGameCommand;
+import websocket.messages.ErrorMessage;
 import websocket.messages.LoadMessage;
+import websocket.messages.NotificationMessage;
 
 public class WebsocketServer {
     private final ConnectionManager connections = new ConnectionManager();
@@ -31,12 +35,13 @@ public class WebsocketServer {
             var command = new Gson().fromJson(ctx.message(), UserGameCommand.class);
             switch (command.getCommandType()) {
                 case CONNECT -> gameConnect(ctx, command);
-                case MAKE_MOVE -> makeMove(command);
-                case LEAVE -> leaveGame(command);
-                case RESIGN -> resignGame(command);
+                case MAKE_MOVE -> makeMove(ctx, new Gson().fromJson(ctx.message(), MakeMoveCommand.class));
+                case LEAVE -> leaveGame(ctx, command);
+                case RESIGN -> resignGame(ctx, command);
             }
         } catch (Exception ex) {
-            System.out.printf("Unhandled ws message: %s", ex.getMessage());
+            var error = new ErrorMessage(ex.getMessage());
+            ctx.send(error.toString());
         }
     }
 
@@ -47,16 +52,22 @@ public class WebsocketServer {
     private void gameConnect(WsContext ctx, UserGameCommand command) throws CodedException {
         var info = gameService.connectToGame(command.getAuthToken(), command.getGameID());
         connections.add(command.getGameID(), ctx);
-        connections.broadcast(command.getGameID(), ctx.sessionId(), String.format("%s has joined the game as %s", info.username(), info.role()));
+        var notification = new NotificationMessage(String.format("%s has joined the game as %s", info.username(), info.role()));
+        connections.broadcast(command.getGameID(), ctx.sessionId(), notification);
         ctx.send(new LoadMessage(info.gameData()).toString());
     }
 
-    private void makeMove(UserGameCommand command) {
+    private void makeMove(WsContext ctx, MakeMoveCommand command) throws CodedException {
+        GameData gameData = gameService.makeMove(command.getAuthToken(), command.getGameID(), command.getMove());
+        connections.broadcast(gameData.gameID(), "", new LoadMessage(gameData));
+        var sessionID = (gameData.state() == GameData.State.UNDECIDED) ? ctx.sessionId() : "";
+        var notification = new NotificationMessage(gameData.description());
+        connections.broadcast(gameData.gameID(), sessionID, notification);
     }
 
-    private void leaveGame(UserGameCommand command) {
+    private void leaveGame(WsContext ctx, UserGameCommand command) {
     }
 
-    private void resignGame(UserGameCommand command) {
+    private void resignGame(WsContext ctx, UserGameCommand command) {
     }
 }

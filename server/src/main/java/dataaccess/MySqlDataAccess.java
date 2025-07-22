@@ -59,14 +59,15 @@ public class MySqlDataAccess implements DataAccess {
         var game = new ChessGame();
         game.board.resetBoard();
         var state = GameData.State.UNDECIDED;
-        var ID = executeUpdate("INSERT INTO `game` (gameName, whitePlayerName, blackPlayerName, game, state) VALUES (?, ?, ?, ?, ?)",
+        var ID = executeUpdate("INSERT INTO `game` (gameName, whitePlayerName, blackPlayerName, game, state, description) VALUES (?, ?, ?, ?, ?, ?)",
                 gameName,
                 null,
                 null,
                 game.toString(),
-                state.toString());
+                state.toString(),
+                "Game created");
         if (ID != 0) {
-            return new GameData(ID, null, null, gameName, game, state);
+            return new GameData(ID, null, null, gameName, game, state, "Game created");
         }
 
         return null;
@@ -74,7 +75,7 @@ public class MySqlDataAccess implements DataAccess {
 
     public GameData getGame(int gameID) throws DataAccessException {
         try (var conn = DatabaseManager.getConnection()) {
-            try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state FROM `game` WHERE gameID=?")) {
+            try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game` WHERE gameID=?")) {
                 preparedStatement.setInt(1, gameID);
                 try (var rs = preparedStatement.executeQuery()) {
                     if (rs.next()) {
@@ -92,7 +93,7 @@ public class MySqlDataAccess implements DataAccess {
     public Collection<GameData> listGames() throws DataAccessException {
         var result = new ArrayList<GameData>();
         try (var conn = DatabaseManager.getConnection()) {
-            try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state FROM `game`")) {
+            try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game`")) {
                 try (var rs = preparedStatement.executeQuery()) {
                     while (rs.next()) {
                         var gameData = readGameData(rs);
@@ -108,12 +109,13 @@ public class MySqlDataAccess implements DataAccess {
     }
 
     public GameData updateGame(GameData gameData) throws DataAccessException {
-        executeUpdate("UPDATE `game` set gameName=?, whitePlayerName=?, blackPlayerName=?, game=?, state=? WHERE gameID=?",
+        executeUpdate("UPDATE `game` set gameName=?, whitePlayerName=?, blackPlayerName=?, game=?, state=?, description=? WHERE gameID=?",
                 gameData.gameName(),
                 gameData.whiteUsername(),
                 gameData.blackUsername(),
                 gameData.game().toString(),
                 gameData.state().toString(),
+                gameData.description(),
                 gameData.gameID());
         return gameData;
     }
@@ -154,8 +156,9 @@ public class MySqlDataAccess implements DataAccess {
         var blackPlayerName = rs.getString("blackPlayerName");
         var game = chess.ChessGame.fromString(gs);
         var state = GameData.State.valueOf(rs.getString("state"));
+        var description = rs.getString("description");
 
-        return new GameData(gameID, whitePlayerName, blackPlayerName, gameName, game, state);
+        return new GameData(gameID, whitePlayerName, blackPlayerName, gameName, game, state, description);
     }
 
     private final String[] createStatements = {
@@ -174,6 +177,7 @@ public class MySqlDataAccess implements DataAccess {
               `blackPlayerName` varchar(100) DEFAULT NULL,
               `game` longtext NOT NULL,
               `state` varchar(45) DEFAULT NULL,
+              `description` varchar(256) DEFAULT NULL,
               PRIMARY KEY (`gameID`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
             """,
