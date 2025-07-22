@@ -10,6 +10,8 @@ import server.Server;
 import service.ServerFacade;
 import utils.StringUtils;
 
+import java.util.Arrays;
+
 import static utils.StringUtils.randomString;
 
 
@@ -19,10 +21,10 @@ public class ServerFacadeTests {
     private static ServerFacade serverFacade;
 
     @BeforeAll
-    public static void init() {
+    public static void init() throws Exception {
         server = new Server();
         var port = server.run(0);
-        serverFacade = new ServerFacade(String.format("http://localhost:%d", port));
+        serverFacade = new ServerFacade(String.format("http://localhost:%d", port), null);
         System.out.println("Started test HTTP server on " + port);
     }
 
@@ -124,7 +126,14 @@ public class ServerFacadeTests {
         AuthData authData = serverFacade.register(user.username(), user.password(), user.email());
         var gameName = StringUtils.randomString();
         var game = serverFacade.createGame(authData.authToken(), gameName);
-        var joinedGame = serverFacade.joinGame(authData.authToken(), game.gameID(), ChessGame.TeamColor.WHITE);
+        serverFacade.joinGame(authData.authToken(), game.gameID(), ChessGame.TeamColor.WHITE);
+        var games = serverFacade.listGames(authData.authToken());
+
+        var joinedGame = Arrays.stream(games)
+                .filter(g -> g.gameID() == game.gameID())
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Created game not found in listGames"));
+
         assertEquals(game.gameID(), joinedGame.gameID());
         assertEquals(user.username(), joinedGame.whiteUsername());
     }

@@ -15,23 +15,23 @@ public class WebSocketFacade extends Endpoint {
     Session session;
     MessageObserver responseHandler;
 
+    final MessageObserver defaultObserver = msg -> {
+    };
 
     public WebSocketFacade(String url, MessageObserver messageObserver) throws DeploymentException, IOException, URISyntaxException {
         URI uri = new URI(url);
         URI socketURI = new URI("ws", uri.getUserInfo(), uri.getHost(), uri.getPort(), "/ws", null, null);
-        this.responseHandler = messageObserver;
+        this.responseHandler = messageObserver != null ? messageObserver : defaultObserver;
 
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         this.session = container.connectToServer(this, socketURI);
 
-        this.session.addMessageHandler(new jakarta.websocket.MessageHandler.Whole<String>() {
-            public void onMessage(String messageText) {
-                ServerMessage message = new Gson().fromJson(messageText, ServerMessage.class);
-                switch (message.getServerMessageType()) {
-                    case LOAD_GAME -> loadGame(message);
-                    case ERROR -> error(message);
-                    case NOTIFICATION -> notification(message);
-                }
+        this.session.addMessageHandler((MessageHandler.Whole<String>) messageText -> {
+            ServerMessage message = new Gson().fromJson(messageText, ServerMessage.class);
+            switch (message.getServerMessageType()) {
+                case LOAD_GAME -> loadGame(message);
+                case ERROR -> error(message);
+                case NOTIFICATION -> notification(message);
             }
         });
     }
