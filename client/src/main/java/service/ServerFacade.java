@@ -4,7 +4,6 @@ import chess.ChessGame;
 import com.google.gson.Gson;
 import model.AuthData;
 import model.GameData;
-import service.WebSocketFacade;
 
 import java.net.URI;
 import java.net.http.*;
@@ -17,10 +16,10 @@ public class ServerFacade {
     private final HttpClient httpClient;
     private final WebSocketFacade webSocket;
 
-    public ServerFacade(String url, DisplayHandler displayHandler) throws Exception {
+    public ServerFacade(String url, MessageObserver messageObserver) throws Exception {
         serverUrl = url;
         httpClient = HttpClient.newHttpClient();
-        webSocket = new WebSocketFacade(serverUrl, displayHandler);
+        webSocket = new WebSocketFacade(serverUrl, messageObserver);
     }
 
 

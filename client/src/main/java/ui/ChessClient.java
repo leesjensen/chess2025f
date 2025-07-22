@@ -4,7 +4,7 @@ import chess.ChessGame;
 import chess.ChessPosition;
 import model.AuthData;
 import model.GameData;
-import service.DisplayHandler;
+import service.MessageObserver;
 import service.ServerFacade;
 import utils.StringUtils;
 
@@ -13,7 +13,7 @@ import java.util.*;
 
 import static ui.EscapeSequences.*;
 
-public class ChessClient implements DisplayHandler {
+public class ChessClient implements MessageObserver {
     final private ServerFacade server;
     private State userState = State.LOGGED_OUT;
     private String authToken;
@@ -221,7 +221,7 @@ public class ChessClient implements DisplayHandler {
     }
 
     @Override
-    public void process(String message) {
+    public void notify(String message) {
         System.out.println(message);
     }
 
