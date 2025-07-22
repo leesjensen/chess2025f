@@ -17,7 +17,7 @@ public class ChessClient implements MessageObserver {
     final private ServerFacade server;
     private State userState = State.LOGGED_OUT;
     private String authToken;
-    private GameData gameData;
+    private GameData currentGame;
     private List<GameData> games = new ArrayList<>();
 
     public ChessClient(String serverUrl) throws Exception {
@@ -155,12 +155,10 @@ public class ChessClient implements MessageObserver {
 
         var game = getGame(params, 0);
         var color = getColor(params, 1);
-        if (playing() || observing()) {
-            throw new Exception("Already in game");
-        }
 
-        userState = (color == ChessGame.TeamColor.WHITE ? State.WHITE : State.BLACK);
         server.joinGame(authToken, game.gameID(), color);
+        userState = (color == ChessGame.TeamColor.WHITE ? State.WHITE : State.BLACK);
+        currentGame = game;
 
         return String.format("Joined %s as %s", game.gameName(), color);
     }
@@ -170,8 +168,8 @@ public class ChessClient implements MessageObserver {
 
         var game = getGame(params, 0);
         server.observeGame(authToken, game.gameID());
-
         userState = State.OBSERVING;
+        currentGame = game;
 
         return String.format("Joined %d as observer", game.gameID());
     }
@@ -189,7 +187,7 @@ public class ChessClient implements MessageObserver {
         var pos = new ChessPosition(params[0]);
         var highlights = new ArrayList<ChessPosition>();
         highlights.add(pos);
-        for (var move : gameData.game().validMoves(pos)) {
+        for (var move : currentGame.game().validMoves(pos)) {
             highlights.add(move.getEndPosition());
         }
 
@@ -208,7 +206,7 @@ public class ChessClient implements MessageObserver {
         verify(playing() || observing());
 
         userState = State.LOGGED_IN;
-        gameData = null;
+        currentGame = null;
         return "Left game";
     }
 
@@ -216,7 +214,7 @@ public class ChessClient implements MessageObserver {
         verify(playing());
 
         userState = State.LOGGED_IN;
-        gameData = null;
+        currentGame = null;
         return "Resigned game";
     }
 
@@ -284,20 +282,20 @@ public class ChessClient implements MessageObserver {
     }
 
     public boolean playing() {
-        return (authenticated() && gameData != null && (userState == State.WHITE || userState == State.BLACK) && !gameOver());
+        return (authenticated() && currentGame != null && (userState == State.WHITE || userState == State.BLACK) && !gameOver());
     }
 
 
     public boolean observing() {
-        return (authenticated() && gameData != null && (userState == State.OBSERVING));
+        return (authenticated() && currentGame != null && (userState == State.OBSERVING));
     }
 
     public boolean gameOver() {
-        return (gameData != null && gameData.isGameOver());
+        return (currentGame != null && currentGame.isGameOver());
     }
 
     public boolean isMyTurn() {
-        return (playing() && userState.isTurn(gameData.game().getTeamTurn()));
+        return (playing() && userState.isTurn(currentGame.game().getTeamTurn()));
     }
 
     private void printGame() {
@@ -307,7 +305,7 @@ public class ChessClient implements MessageObserver {
     private void printGame(Collection<ChessPosition> highlights) {
         var color = userState == State.BLACK ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
         System.out.println("\n");
-        System.out.print((gameData.game().getBoard()).toString(color, highlights));
+        System.out.print((currentGame.game().getBoard()).toString(color, highlights));
         System.out.println();
     }
 

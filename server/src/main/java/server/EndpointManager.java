@@ -32,6 +32,8 @@ public class EndpointManager {
         javalin.post("/game", this::createGame);
         javalin.get("/game", this::listGames);
         javalin.put("/game", this::joinGame);
+
+        new WebsocketServer(javalin, gameService);
     }
 
 

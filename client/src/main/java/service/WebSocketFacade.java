@@ -4,11 +4,11 @@ import com.google.gson.Gson;
 
 import jakarta.websocket.*;
 import websocket.commands.UserGameCommand;
+import websocket.messages.ServerMessage;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Map;
 
 public class WebSocketFacade extends Endpoint {
 
@@ -25,10 +25,28 @@ public class WebSocketFacade extends Endpoint {
         this.session = container.connectToServer(this, socketURI);
 
         this.session.addMessageHandler(new jakarta.websocket.MessageHandler.Whole<String>() {
-            public void onMessage(String message) {
-                messageObserver.notify(message);
+            public void onMessage(String messageText) {
+                ServerMessage message = new Gson().fromJson(messageText, ServerMessage.class);
+                switch (message.getServerMessageType()) {
+                    case LOAD_GAME -> loadGame(message);
+                    case ERROR -> error(message);
+                    case NOTIFICATION -> notification(message);
+                }
             }
         });
+    }
+
+
+    private void loadGame(ServerMessage message) {
+        responseHandler.notify(message.toString());
+    }
+
+    private void error(ServerMessage message) {
+        responseHandler.notify(message.toString());
+    }
+
+    private void notification(ServerMessage message) {
+        responseHandler.notify(message.toString());
     }
 
     public void onOpen(Session session, EndpointConfig endpointConfig) {
@@ -43,7 +61,7 @@ public class WebSocketFacade extends Endpoint {
     }
 
     public void sendMessage(String message) throws IOException {
-        session.getBasicRemote().sendText(new Gson().toJson(Map.of("message", message)));
+        session.getBasicRemote().sendText(message);
     }
 }
 

@@ -53,11 +53,10 @@ public class ServerFacade {
         return (response != null ? response.games : new GameData[0]);
     }
 
-    public GameData joinGame(String authToken, int gameID, ChessGame.TeamColor color) throws Exception {
+    public void joinGame(String authToken, int gameID, ChessGame.TeamColor color) throws Exception {
         var request = new JoinGameReq(color, gameID);
         this.makeRequest("PUT", "/game", request, authToken, GameData.class);
         webSocket.connect(authToken, gameID);
-        return getGame(authToken, gameID);
     }
 
     public void observeGame(String authToken, int gameID) throws Exception {

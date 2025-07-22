@@ -64,4 +64,21 @@ public class GameService extends Service {
         }
     }
 
+    public record ConnectionInfo(String username, String role, GameData gameData) {
+    }
+
+    public ConnectionInfo connectToGame(String authToken, int gameID) throws CodedException {
+        AuthData authData = getAuthData(authToken);
+        String username = authData.username();
+        try {
+            GameData gameData = dataAccess.getGame(gameID);
+            if (gameData == null) {
+                throw new CodedException(400, "Unknown game");
+            }
+            return new ConnectionInfo(username, "observer", gameData);
+        } catch (DataAccessException ex) {
+            throw new CodedException(500, "Server error", ex);
+        }
+    }
+
 }
