@@ -44,11 +44,11 @@ public record GameData(int gameID, String whiteUsername, String blackUsername, S
     }
 
     public GameData setWhite(String username) {
-        return new GameData(this.gameID, username, this.blackUsername, this.gameName, this.game, this.state, String.format("%s joined as white", username));
+        return new GameData(this.gameID, username, this.blackUsername, this.gameName, this.game, this.state, this.description);
     }
 
     public GameData setBlack(String username) {
-        return new GameData(this.gameID, this.whiteUsername, username, this.gameName, this.game, this.state, String.format("%s joined as black", username));
+        return new GameData(this.gameID, this.whiteUsername, username, this.gameName, this.game, this.state, this.description);
     }
 
     public GameData setState(State state, String description) {
