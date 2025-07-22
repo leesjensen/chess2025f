@@ -88,7 +88,7 @@ public class ChessClient implements MessageObserver {
 
     private String login(String[] params) throws Exception {
         if (userState != State.LOGGED_OUT) {
-            return "Must be logged out";
+            return "Already logged in";
         }
         var username = getStringParam("username", params, 0);
         var password = getStringParam("password", params, 1);
@@ -101,7 +101,7 @@ public class ChessClient implements MessageObserver {
 
     private String register(String[] params) throws Exception {
         if (userState != State.LOGGED_OUT) {
-            return "Must be logged out";
+            return "Already logged in";
         }
         var username = getStringParam("username", params, 0);
         var password = getStringParam("password", params, 1);
@@ -221,6 +221,11 @@ public class ChessClient implements MessageObserver {
     @Override
     public void notify(String message) {
         System.out.println(message);
+    }
+
+    public void loadGame(GameData gameData) {
+        currentGame = gameData;
+        printGame();
     }
 
 

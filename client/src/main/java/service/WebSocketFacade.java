@@ -3,7 +3,9 @@ package service;
 import com.google.gson.Gson;
 
 import jakarta.websocket.*;
+import model.GameData;
 import websocket.commands.UserGameCommand;
+import websocket.messages.LoadMessage;
 import websocket.messages.ServerMessage;
 
 import java.io.IOException;
@@ -15,7 +17,12 @@ public class WebSocketFacade extends Endpoint {
     Session session;
     MessageObserver responseHandler;
 
-    final MessageObserver defaultObserver = msg -> {
+    final MessageObserver defaultObserver = new MessageObserver() {
+        public void notify(String message) {
+        }
+
+        public void loadGame(GameData game) {
+        }
     };
 
     public WebSocketFacade(String url, MessageObserver messageObserver) throws DeploymentException, IOException, URISyntaxException {
@@ -26,19 +33,21 @@ public class WebSocketFacade extends Endpoint {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         this.session = container.connectToServer(this, socketURI);
 
-        this.session.addMessageHandler((MessageHandler.Whole<String>) messageText -> {
-            ServerMessage message = new Gson().fromJson(messageText, ServerMessage.class);
-            switch (message.getServerMessageType()) {
-                case LOAD_GAME -> loadGame(message);
-                case ERROR -> error(message);
-                case NOTIFICATION -> notification(message);
+        this.session.addMessageHandler(new jakarta.websocket.MessageHandler.Whole<String>() {
+            public void onMessage(String messageText) {
+                ServerMessage message = new Gson().fromJson(messageText, ServerMessage.class);
+                switch (message.getServerMessageType()) {
+                    case LOAD_GAME -> loadGame(new Gson().fromJson(messageText, LoadMessage.class));
+                    case ERROR -> error(message);
+                    case NOTIFICATION -> notification(message);
+                }
             }
         });
     }
 
 
-    private void loadGame(ServerMessage message) {
-        responseHandler.notify(message.toString());
+    private void loadGame(LoadMessage message) {
+        responseHandler.loadGame(message.game);
     }
 
     private void error(ServerMessage message) {

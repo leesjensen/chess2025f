@@ -2,6 +2,9 @@ package service;
 
 import chess.ChessGame;
 import com.google.gson.Gson;
+import jakarta.websocket.Endpoint;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.Session;
 import model.AuthData;
 import model.GameData;
 
