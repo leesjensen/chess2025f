@@ -20,60 +20,60 @@ public class ChessClient implements MessageObserver {
     private GameData currentGame;
     private List<GameData> games = new ArrayList<>();
 
+    record CommandInfo(String name, Command cmd, String syntax, String description) {
+    }
 
     interface Command {
         String invoke(String[] params) throws Exception;
     }
 
-    private final Map<String, Command> commands;
+    private final Map<String, CommandInfo> commands = new HashMap<>();
 
     public ChessClient(String serverUrl) throws Exception {
         server = new ServerFacade(serverUrl, this);
 
-        commands = Map.ofEntries(
-                Map.entry("help", this::help),
-                Map.entry("quit", this::quit),
-                Map.entry("login", this::login),
-                Map.entry("register", this::register),
-                Map.entry("logout", this::logout),
-                Map.entry("create", this::create),
-                Map.entry("list", this::list),
-                Map.entry("join", this::join),
-                Map.entry("observe", this::observe),
-                Map.entry("redraw", this::redraw),
-                Map.entry("legal", this::legal),
-                Map.entry("move", this::move),
-                Map.entry("leave", this::leave),
-                Map.entry("resign", this::resign)
-        );
-    }
+        final CommandInfo[] commandList = {
+                new CommandInfo("help", this::help, "help", "with possible commands"),
+                new CommandInfo("quit", this::quit, "quit", "playing chess"),
+                new CommandInfo("login", this::login, "login <USERNAME> <PASSWORD>", "to play chess"),
+                new CommandInfo("register", this::register, "register <USERNAME> <PASSWORD> <EMAIL>", "to create an account"),
+                new CommandInfo("logout", this::logout, "logout", "when you are done"),
+                new CommandInfo("create", this::create, "create <NAME>", "a game"),
+                new CommandInfo("list", this::list, "list", "games"),
+                new CommandInfo("join", this::join, "join <POSITION> [WHITE|BLACK]", "a game"),
+                new CommandInfo("observe", this::observe, "observe <ID>", "a game"),
+                new CommandInfo("redraw", this::redraw, "redraw", "the board"),
+                new CommandInfo("legal", this::legal, "legal", "moves for the current board"),
+                new CommandInfo("move", this::move, "move <crcr> [q|r|b|n]", "a piece with optional promotion"),
+                new CommandInfo("leave", this::leave, "leave", "the game"),
+                new CommandInfo("resign", this::resign, "resign", "the game without leaving it")
+        };
 
+        for (var cmd : commandList) {
+            commands.put(cmd.name(), cmd);
+        }
+    }
 
     public void run() {
         System.out.println("👑 Welcome to 240 chess. Type Help to get started. 👑");
         Scanner scanner = new Scanner(System.in);
 
-        var result = "";
-        while (!result.equals("Thanks for playing!")) {
+        var keepRunning = true;
+        while (keepRunning) {
             printPrompt();
             String input = scanner.nextLine();
 
-            try {
-                result = eval(input);
-                System.out.printf("%s%s\n", RESET_TEXT_COLOR, result);
-            } catch (Throwable e) {
-                System.out.println(e.getMessage());
-            }
+            keepRunning = eval(input);
         }
 
     }
 
     private void printPrompt() {
-        System.out.printf("%s>%s ", SET_TEXT_COLOR_YELLOW, RESET_TEXT_COLOR);
+        System.out.printf("%s[%s]>%s ", SET_TEXT_COLOR_GREEN, playerState, RESET_TEXT_COLOR);
     }
 
-    private String eval(String input) {
-        var result = "Error with command. Try: Help";
+    private boolean eval(String input) {
+        CommandInfo cmdInfo = null;
         try {
             input = input.toLowerCase();
             var tokens = input.split(" ");
@@ -82,26 +82,41 @@ public class ChessClient implements MessageObserver {
             }
 
             var params = Arrays.copyOfRange(tokens, 1, tokens.length);
-            Command cmd = commands.get(tokens[0]);
-            if (cmd == null) {
-                cmd = this::help;
+            cmdInfo = commands.get(tokens[0]);
+            if (cmdInfo == null) {
+                cmdInfo = commands.get("help");
             }
 
-            result = cmd.invoke(params);
+            String result = cmdInfo.cmd.invoke(params);
+            System.out.printf("%s%s\n", RESET_TEXT_COLOR, result);
         } catch (Throwable e) {
-            result = e.getMessage();
+            System.out.printf("%s%s\n", RESET_TEXT_COLOR, e.getMessage());
         }
-        return result;
+        return cmdInfo == null || !cmdInfo.name.equals("quit");
     }
 
 
     private String help(String[] ignoredParams) {
+        final List<String> loggedOutHelp = List.of("register", "login", "quit", "help");
+        final List<String> loggedInHelp = List.of("create", "list", "join", "observe", "logout", "quit", "help");
+        final List<String> observingHelp = List.of("legal", "redraw", "leave", "quit", "help");
+        final List<String> playingHelp = List.of("redraw", "leave", "move", "resign", "legal", "quit", "help");
+
         return switch (playerState) {
             case LOGGED_IN -> getHelp(loggedInHelp);
-            case OBSERVING -> getHelp(ObservingHelp);
+            case OBSERVING -> getHelp(observingHelp);
             case BLACK, WHITE -> getHelp(playingHelp);
             default -> getHelp(loggedOutHelp);
         };
+    }
+
+    private String getHelp(List<String> helpList) {
+        StringBuilder sb = new StringBuilder();
+        for (var helpItem : helpList) {
+            CommandInfo cmdInfo = commands.get(helpItem);
+            sb.append(String.format("  %s%s%s - %s%s%s\n", SET_TEXT_COLOR_BLUE, cmdInfo.syntax(), RESET_TEXT_COLOR, SET_TEXT_COLOR_MAGENTA, cmdInfo.description(), RESET_TEXT_COLOR));
+        }
+        return sb.toString();
     }
 
 
@@ -245,59 +260,14 @@ public class ChessClient implements MessageObserver {
 
     @Override
     public void notify(String message) {
-        System.out.printf("%s%s%s%n", SET_TEXT_COLOR_YELLOW, message, RESET_TEXT_COLOR);
+        System.out.printf("%s%s%s%n", SET_TEXT_COLOR_BLUE, message, RESET_TEXT_COLOR);
+        printPrompt();
     }
 
     public void loadGame(GameData gameData) {
         currentGame = gameData;
         printGame();
-    }
-
-    private record Help(String cmd, String description) {
-    }
-
-    static final List<Help> loggedOutHelp = List.of(
-            new Help("register <USERNAME> <PASSWORD> <EMAIL>", "to create an account"),
-            new Help("login <USERNAME> <PASSWORD>", "to play chess"),
-            new Help("quit", "playing chess"),
-            new Help("help", "with possible commands")
-    );
-
-    static final List<Help> loggedInHelp = List.of(
-            new Help("create <NAME>", "a game"),
-            new Help("list", "games"),
-            new Help("join <POSITION> [WHITE|BLACK]", "a game"),
-            new Help("observe <ID>", "a game"),
-            new Help("logout", "when you are done"),
-            new Help("quit", "playing chess"),
-            new Help("help", "with possible commands")
-    );
-
-    static final List<Help> ObservingHelp = List.of(
-            new Help("legal", "moves for the current board"),
-            new Help("redraw", "the board"),
-            new Help("leave", "the game"),
-            new Help("quit", "playing chess"),
-            new Help("help", "with possible commands")
-    );
-
-    static final List<Help> playingHelp = List.of(
-            new Help("redraw", "the board"),
-            new Help("leave", "the game"),
-            new Help("move <crcr> [q|r|b|n]", "a piece with optional promotion"),
-            new Help("resign", "the game without leaving it"),
-            new Help("legal <cr>", "moves for piece"),
-            new Help("quit", "playing chess"),
-            new Help("help", "with possible commands")
-    );
-
-    private String getHelp(List<Help> help) {
-        StringBuilder sb = new StringBuilder();
-        for (var me : help) {
-            sb.append(String.format("  %s%s%s - %s%s%s\n", SET_TEXT_COLOR_BLUE, me.cmd, RESET_TEXT_COLOR, SET_TEXT_COLOR_MAGENTA, me.description, RESET_TEXT_COLOR));
-        }
-        return sb.toString();
-
+        printPrompt();
     }
 
     private void verify(boolean expected, String message) throws Exception {

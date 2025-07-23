@@ -1,14 +1,15 @@
 package service;
 
-import chess.*;
-import dataaccess.*;
-import model.*;
-import websocket.messages.NotificationMessage;
+import chess.ChessGame;
+import chess.ChessMove;
+import chess.InvalidMoveException;
+import dataaccess.DataAccess;
+import dataaccess.DataAccessException;
+import model.AuthData;
+import model.GameData;
 
 import java.util.Collection;
 
-import static chess.ChessGame.TeamColor.BLACK;
-import static chess.ChessGame.TeamColor.WHITE;
 
 public class GameService extends Service {
 
