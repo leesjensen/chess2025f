@@ -30,7 +30,7 @@ public class ChessClient implements MessageObserver {
         Scanner scanner = new Scanner(System.in);
 
         var result = "";
-        while (!result.equals("quit")) {
+        while (!result.equals("Thanks for playing!")) {
             printPrompt();
             String input = scanner.nextLine();
 
