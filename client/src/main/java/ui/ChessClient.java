@@ -83,7 +83,7 @@ public class ChessClient implements MessageObserver {
 
 
     private String quit(String[] params) {
-        return "quit";
+        return "Thanks for playing!";
     }
 
 
