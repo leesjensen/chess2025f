@@ -135,7 +135,7 @@ public class ChessClient implements MessageObserver {
         AuthData authData = server.login(username, password);
         playerState = State.LOGGED_IN;
         authToken = authData.authToken();
-        return String.format("Logged in as %s", username);
+        return String.format("Logged in as %s%n%n%s", username, list(params));
     }
 
     private String register(String[] params) throws Exception {
@@ -149,7 +149,8 @@ public class ChessClient implements MessageObserver {
         AuthData authData = server.register(username, password, email);
         playerState = State.LOGGED_IN;
         authToken = authData.authToken();
-        return String.format("Logged in as %s", username);
+        list(params);
+        return String.format("Registered in as %s%n%n%s", username, list(params));
     }
 
     private String logout(String[] ignoredParams) throws Exception {
@@ -166,7 +167,9 @@ public class ChessClient implements MessageObserver {
 
         var gameName = getStringParam("game name", params, 0);
         server.createGame(authToken, gameName);
-        return String.format("Created %s", gameName);
+
+        return String.format("Created %s%n%s", gameName, list(params));
+
     }
 
     private String list(String[] ignoredParams) throws Exception {
@@ -260,7 +263,7 @@ public class ChessClient implements MessageObserver {
 
     @Override
     public void notify(String message) {
-        System.out.printf("%s%s%s%n", SET_TEXT_COLOR_BLUE, message, RESET_TEXT_COLOR);
+        System.out.printf("%s[NOTIFICATION] %s%s%n", SET_TEXT_COLOR_BLUE, message, RESET_TEXT_COLOR);
         printPrompt();
     }
 
@@ -306,7 +309,7 @@ public class ChessClient implements MessageObserver {
         System.out.println("\n");
         System.out.print((currentGame.game().getBoard()).toString(color, highlights));
         System.out.println();
-        System.out.printf("%s%n", currentGame.description());
+        System.out.printf("[GAME STATE] %s%n", currentGame.description());
     }
 
     private String getStringParam(String name, String[] params, int pos) throws Exception {

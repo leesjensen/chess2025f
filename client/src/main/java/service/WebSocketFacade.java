@@ -2,7 +2,6 @@ package service;
 
 import chess.ChessMove;
 import com.google.gson.Gson;
-
 import jakarta.websocket.*;
 import model.GameData;
 import websocket.commands.MakeMoveCommand;
@@ -76,7 +75,7 @@ public class WebSocketFacade extends Endpoint {
     }
 
     private void notification(NotificationMessage message) {
-        responseHandler.notify(String.format("INFO: %s", message.getMessage()));
+        responseHandler.notify(message.getMessage());
     }
 
     public void onOpen(Session session, EndpointConfig endpointConfig) {
