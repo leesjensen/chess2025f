@@ -9,7 +9,6 @@ import service.MessageObserver;
 import service.ServerFacade;
 import utils.StringUtils;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 import static ui.EscapeSequences.*;
@@ -21,9 +20,34 @@ public class ChessClient implements MessageObserver {
     private GameData currentGame;
     private List<GameData> games = new ArrayList<>();
 
+
+    interface Command {
+        String invoke(String[] params) throws Exception;
+    }
+
+    private final Map<String, Command> commands;
+
     public ChessClient(String serverUrl) throws Exception {
         server = new ServerFacade(serverUrl, this);
+
+        commands = Map.ofEntries(
+                Map.entry("help", this::help),
+                Map.entry("quit", this::quit),
+                Map.entry("login", this::login),
+                Map.entry("register", this::register),
+                Map.entry("logout", this::logout),
+                Map.entry("create", this::create),
+                Map.entry("list", this::list),
+                Map.entry("join", this::join),
+                Map.entry("observe", this::observe),
+                Map.entry("redraw", this::redraw),
+                Map.entry("legal", this::legal),
+                Map.entry("move", this::move),
+                Map.entry("leave", this::leave),
+                Map.entry("resign", this::resign)
+        );
     }
+
 
     public void run() {
         System.out.println("👑 Welcome to 240 chess. Type Help to get started. 👑");
@@ -58,13 +82,12 @@ public class ChessClient implements MessageObserver {
             }
 
             var params = Arrays.copyOfRange(tokens, 1, tokens.length);
-            try {
-                result = (String) this.getClass().getDeclaredMethod(tokens[0], String[].class).invoke(this, new Object[]{params});
-            } catch (NoSuchMethodException e) {
-                result = String.format("Unknown command\n%s", help(params));
+            Command cmd = commands.get(tokens[0]);
+            if (cmd == null) {
+                cmd = this::help;
             }
-        } catch (InvocationTargetException e) {
-            result = e.getCause().getMessage();
+
+            result = cmd.invoke(params);
         } catch (Throwable e) {
             result = e.getMessage();
         }
@@ -72,7 +95,7 @@ public class ChessClient implements MessageObserver {
     }
 
 
-    private String help(String[] params) {
+    private String help(String[] ignoredParams) {
         return switch (playerState) {
             case LOGGED_IN -> getHelp(loggedInHelp);
             case OBSERVING -> getHelp(ObservingHelp);
@@ -82,7 +105,7 @@ public class ChessClient implements MessageObserver {
     }
 
 
-    private String quit(String[] params) {
+    private String quit(String[] ignoredParams) {
         return "Thanks for playing!";
     }
 
@@ -114,7 +137,7 @@ public class ChessClient implements MessageObserver {
         return String.format("Logged in as %s", username);
     }
 
-    private String logout(String[] ignore) throws Exception {
+    private String logout(String[] ignoredParams) throws Exception {
         verify(authenticated(), "Not logged in");
 
         server.logout(authToken);
@@ -131,7 +154,7 @@ public class ChessClient implements MessageObserver {
         return String.format("Created %s", gameName);
     }
 
-    private String list(String[] params) throws Exception {
+    private String list(String[] ignoredParams) throws Exception {
         verify(authenticated(), "Not logged in");
 
         var gameList = server.listGames(authToken);
@@ -154,8 +177,8 @@ public class ChessClient implements MessageObserver {
     private String join(String[] params) throws Exception {
         verify(authenticated() && !playing() && !observing(), "Cannot join game if not logged in or already in a game");
 
-        var game = getGame(params, 0);
-        var color = getColor(params, 1);
+        var game = getGame(params);
+        var color = getColor(params);
 
         server.joinGame(authToken, game.gameID(), color);
         playerState = (color == ChessGame.TeamColor.WHITE ? State.WHITE : State.BLACK);
@@ -167,7 +190,7 @@ public class ChessClient implements MessageObserver {
     private String observe(String[] params) throws Exception {
         verify(authenticated() && !playing() && !observing(), "Cannot join game if not logged in or already in a game");
 
-        var game = getGame(params, 0);
+        var game = getGame(params);
         server.observeGame(authToken, game.gameID());
         playerState = State.OBSERVING;
         currentGame = game;
@@ -175,7 +198,7 @@ public class ChessClient implements MessageObserver {
         return String.format("Joined %d as observer", game.gameID());
     }
 
-    private String redraw(String[] params) throws Exception {
+    private String redraw(String[] ignoredParams) throws Exception {
         verify(gameOver() || playing() || observing(), "Not in a game");
 
         printGame();
@@ -204,7 +227,7 @@ public class ChessClient implements MessageObserver {
         return String.format("moved %s", move);
     }
 
-    private String leave(String[] params) throws Exception {
+    private String leave(String[] ignoredParams) throws Exception {
         verify(gameOver() || playing() || observing(), "Not in a game");
 
         playerState = State.LOGGED_IN;
@@ -212,7 +235,7 @@ public class ChessClient implements MessageObserver {
         return "Left game";
     }
 
-    private String resign(String[] params) throws Exception {
+    private String resign(String[] ignoredParams) throws Exception {
         verify(playing(), "Not playing a game");
 
         playerState = State.LOGGED_IN;
@@ -228,9 +251,7 @@ public class ChessClient implements MessageObserver {
     public void loadGame(GameData gameData) {
         currentGame = gameData;
         printGame();
-
     }
-
 
     private record Help(String cmd, String description) {
     }
@@ -325,20 +346,8 @@ public class ChessClient implements MessageObserver {
         return params[pos];
     }
 
-    private int getIntParam(String name, String[] params, int pos) throws Exception {
-        if (params.length <= pos) {
-            throw new Exception(String.format("Missing %s parameter", name));
-        }
-
-        var result = StringUtils.tryParseInt(params[pos]);
-        if (result.isEmpty()) {
-            throw new Exception(String.format("Parameter %s is not an int", name));
-        }
-        return result.getAsInt();
-    }
-
-    private GameData getGame(String[] params, int pos) throws Exception {
-        var gamePos = getIntParam("game Pos", params, 0) - 1;
+    private GameData getGame(String[] params) throws Exception {
+        var gamePos = getGamePos(params) - 1;
         if (gamePos >= 0 && gamePos >= games.size()) {
             throw new Exception("invalid game requested");
         }
@@ -346,7 +355,20 @@ public class ChessClient implements MessageObserver {
         return games.get(gamePos);
     }
 
-    private ChessGame.TeamColor getColor(String[] params, int pos) throws Exception {
+
+    private int getGamePos(String[] params) throws Exception {
+        if (params.length == 0) {
+            throw new Exception("Missing game pos parameter");
+        }
+
+        var result = StringUtils.tryParseInt(params[0]);
+        if (result.isEmpty()) {
+            throw new Exception("Parameter game pos is not an int");
+        }
+        return result.getAsInt();
+    }
+
+    private ChessGame.TeamColor getColor(String[] params) throws Exception {
         var colorText = getStringParam("color", params, 1).toUpperCase();
         if (!colorText.equals("WHITE") && !colorText.equals("BLACK")) {
             throw new Exception("color must be black or white");
