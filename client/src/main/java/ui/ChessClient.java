@@ -16,7 +16,7 @@ import static ui.EscapeSequences.*;
 
 public class ChessClient implements MessageObserver {
     final private ServerFacade server;
-    private State userState = State.LOGGED_OUT;
+    private State playerState = State.LOGGED_OUT;
     private String authToken;
     private GameData currentGame;
     private List<GameData> games = new ArrayList<>();
@@ -73,7 +73,7 @@ public class ChessClient implements MessageObserver {
 
 
     private String help(String[] params) {
-        return switch (userState) {
+        return switch (playerState) {
             case LOGGED_IN -> getHelp(loggedInHelp);
             case OBSERVING -> getHelp(ObservingHelp);
             case BLACK, WHITE -> getHelp(playingHelp);
@@ -88,20 +88,20 @@ public class ChessClient implements MessageObserver {
 
 
     private String login(String[] params) throws Exception {
-        if (userState != State.LOGGED_OUT) {
+        if (playerState != State.LOGGED_OUT) {
             return "Already logged in";
         }
         var username = getStringParam("username", params, 0);
         var password = getStringParam("password", params, 1);
 
         AuthData authData = server.login(username, password);
-        userState = State.LOGGED_IN;
+        playerState = State.LOGGED_IN;
         authToken = authData.authToken();
         return String.format("Logged in as %s", username);
     }
 
     private String register(String[] params) throws Exception {
-        if (userState != State.LOGGED_OUT) {
+        if (playerState != State.LOGGED_OUT) {
             return "Already logged in";
         }
         var username = getStringParam("username", params, 0);
@@ -109,22 +109,22 @@ public class ChessClient implements MessageObserver {
         var email = getStringParam("email", params, 2);
 
         AuthData authData = server.register(username, password, email);
-        userState = State.LOGGED_IN;
+        playerState = State.LOGGED_IN;
         authToken = authData.authToken();
         return String.format("Logged in as %s", username);
     }
 
     private String logout(String[] ignore) throws Exception {
-        verify(authenticated());
+        verify(authenticated(), "Not logged in");
 
         server.logout(authToken);
-        userState = State.LOGGED_OUT;
+        playerState = State.LOGGED_OUT;
         authToken = null;
         return "Logged out";
     }
 
     private String create(String[] params) throws Exception {
-        verify(authenticated());
+        verify(authenticated(), "Not logged in");
 
         var gameName = getStringParam("game name", params, 0);
         server.createGame(authToken, gameName);
@@ -132,7 +132,7 @@ public class ChessClient implements MessageObserver {
     }
 
     private String list(String[] params) throws Exception {
-        verify(authenticated());
+        verify(authenticated(), "Not logged in");
 
         var gameList = server.listGames(authToken);
         games = Arrays.stream(gameList).toList();
@@ -152,38 +152,38 @@ public class ChessClient implements MessageObserver {
     }
 
     private String join(String[] params) throws Exception {
-        verify(authenticated() && !playing() && !observing());
+        verify(authenticated() && !playing() && !observing(), "Cannot join game if not logged in or already in a game");
 
         var game = getGame(params, 0);
         var color = getColor(params, 1);
 
         server.joinGame(authToken, game.gameID(), color);
-        userState = (color == ChessGame.TeamColor.WHITE ? State.WHITE : State.BLACK);
+        playerState = (color == ChessGame.TeamColor.WHITE ? State.WHITE : State.BLACK);
         currentGame = game;
 
         return String.format("Joined %s as %s", game.gameName(), color);
     }
 
     private String observe(String[] params) throws Exception {
-        verify(authenticated() && !playing() && !observing());
+        verify(authenticated() && !playing() && !observing(), "Cannot join game if not logged in or already in a game");
 
         var game = getGame(params, 0);
         server.observeGame(authToken, game.gameID());
-        userState = State.OBSERVING;
+        playerState = State.OBSERVING;
         currentGame = game;
 
         return String.format("Joined %d as observer", game.gameID());
     }
 
     private String redraw(String[] params) throws Exception {
-        verify(playing() || observing());
+        verify(gameOver() || playing() || observing(), "Not in a game");
 
         printGame();
         return "";
     }
 
     private String legal(String[] params) throws Exception {
-        verify(playing() || observing());
+        verify(gameOver() || playing() || observing(), "Not in a game");
 
         var pos = new ChessPosition(params[0]);
         var highlights = new ArrayList<ChessPosition>();
@@ -197,7 +197,7 @@ public class ChessClient implements MessageObserver {
     }
 
     private String move(String[] params) throws Exception {
-        verify(playing());
+        verify(playing() && isMyTurn(), "Not your turn");
 
         var move = new ChessMove(getStringParam("move", params, 0));
         server.makeMove(authToken, currentGame.gameID(), move);
@@ -205,17 +205,17 @@ public class ChessClient implements MessageObserver {
     }
 
     private String leave(String[] params) throws Exception {
-        verify(playing() || observing());
+        verify(gameOver() || playing() || observing(), "Not in a game");
 
-        userState = State.LOGGED_IN;
+        playerState = State.LOGGED_IN;
         currentGame = null;
         return "Left game";
     }
 
     private String resign(String[] params) throws Exception {
-        verify(playing());
+        verify(playing(), "Not playing a game");
 
-        userState = State.LOGGED_IN;
+        playerState = State.LOGGED_IN;
         currentGame = null;
         return "Resigned game";
     }
@@ -279,23 +279,23 @@ public class ChessClient implements MessageObserver {
 
     }
 
-    private void verify(boolean expected) throws Exception {
+    private void verify(boolean expected, String message) throws Exception {
         if (!expected) {
-            throw new Exception("Bad request");
+            throw new Exception(message);
         }
     }
 
     private boolean authenticated() {
-        return (userState != State.LOGGED_OUT && authToken != null);
+        return (playerState != State.LOGGED_OUT && authToken != null);
     }
 
     public boolean playing() {
-        return (authenticated() && currentGame != null && (userState == State.WHITE || userState == State.BLACK) && !gameOver());
+        return (authenticated() && currentGame != null && (playerState == State.WHITE || playerState == State.BLACK) && !gameOver());
     }
 
 
     public boolean observing() {
-        return (authenticated() && currentGame != null && (userState == State.OBSERVING));
+        return (authenticated() && currentGame != null && (playerState == State.OBSERVING));
     }
 
     public boolean gameOver() {
@@ -303,7 +303,7 @@ public class ChessClient implements MessageObserver {
     }
 
     public boolean isMyTurn() {
-        return (playing() && userState.isTurn(currentGame.game().getTeamTurn()));
+        return (playing() && playerState.isTurn(currentGame.game().getTeamTurn()));
     }
 
     private void printGame() {
@@ -311,7 +311,7 @@ public class ChessClient implements MessageObserver {
     }
 
     private void printGame(Collection<ChessPosition> highlights) {
-        var color = userState == State.BLACK ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
+        var color = playerState == State.BLACK ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
         System.out.println("\n");
         System.out.print((currentGame.game().getBoard()).toString(color, highlights));
         System.out.println();
