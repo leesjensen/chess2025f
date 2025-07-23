@@ -1,9 +1,11 @@
 package server;
 
 import com.google.gson.Gson;
-import dataaccess.*;
-import io.javalin.*;
-import io.javalin.http.*;
+import dataaccess.DataAccess;
+import dataaccess.DataAccessException;
+import dataaccess.MySqlDataAccess;
+import io.javalin.Javalin;
+import io.javalin.http.Context;
 import service.CodedException;
 
 import java.util.Map;
@@ -42,7 +44,7 @@ public class Server {
     }
 
     private void exceptionHandler(CodedException e, Context context) {
-        var body = new Gson().toJson(Map.of("message", String.format("Error: %s", e.getMessage())));
+        var body = new Gson().toJson(Map.of("message", String.format("ERROR: %s", e.getMessage())));
         context.status(e.statusCode());
         context.json(body);
     }

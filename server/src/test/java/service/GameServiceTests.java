@@ -4,14 +4,10 @@ import chess.ChessGame;
 import dataaccess.DataAccess;
 import dataaccess.DbTests;
 import model.GameData;
-import model.UserData;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collection;
-
-import static utils.StringUtils.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -78,9 +74,9 @@ public class GameServiceTests extends DbTests {
         assertEquals(1, games.size());
         var returnedGame = games.iterator().next();
         assertEquals(game.gameID(), returnedGame.gameID());
-        assertEquals(returnedGame.whiteUsername(), authData.username());
-        assertEquals(returnedGame.gameName(), "testGame");
-        assertEquals(returnedGame.state(), GameData.State.UNDECIDED);
+        assertEquals(authData.username(), returnedGame.whiteUsername());
+        assertEquals("testGame", returnedGame.gameName());
+        assertEquals(GameData.State.UNDECIDED, returnedGame.state());
     }
 
     @ParameterizedTest(name = "{0}")

@@ -56,6 +56,14 @@ public class WebSocketFacade extends Endpoint {
         sendCommand(new MakeMoveCommand(authToken, gameID, move));
     }
 
+    public void leave(String authToken, int gameID) throws IOException {
+        sendCommand(new UserGameCommand(UserGameCommand.CommandType.LEAVE, authToken, gameID));
+    }
+
+    public void resign(String authToken, int gameID) throws IOException {
+        sendCommand(new UserGameCommand(UserGameCommand.CommandType.RESIGN, authToken, gameID));
+    }
+
 
     private void sendCommand(UserGameCommand command) throws IOException {
         sendMessage(command.toString());

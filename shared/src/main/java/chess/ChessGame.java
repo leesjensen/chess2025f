@@ -1,7 +1,6 @@
 package chess;
 
 import com.google.gson.Gson;
-import model.GameData;
 
 import java.util.Collection;
 import java.util.HashSet;

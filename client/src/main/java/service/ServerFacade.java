@@ -3,14 +3,13 @@ package service;
 import chess.ChessGame;
 import chess.ChessMove;
 import com.google.gson.Gson;
-import jakarta.websocket.Endpoint;
-import jakarta.websocket.EndpointConfig;
-import jakarta.websocket.Session;
 import model.AuthData;
 import model.GameData;
 
 import java.net.URI;
-import java.net.http.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,6 +68,14 @@ public class ServerFacade {
 
     public void makeMove(String authToken, int gameID, ChessMove move) throws Exception {
         webSocket.makeMove(authToken, gameID, move);
+    }
+
+    public void leave(String authToken, int gameID) throws Exception {
+        webSocket.leave(authToken, gameID);
+    }
+
+    public void resign(String authToken, int gameID) throws Exception {
+        webSocket.resign(authToken, gameID);
     }
 
     private <T> T makeRequest(String method, String path, Object requestBody, String authToken, Class<T> clazz) throws Exception {

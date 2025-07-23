@@ -2,7 +2,10 @@ package server;
 
 import com.google.gson.Gson;
 import io.javalin.Javalin;
-import io.javalin.websocket.*;
+import io.javalin.websocket.WsCloseContext;
+import io.javalin.websocket.WsConnectContext;
+import io.javalin.websocket.WsContext;
+import io.javalin.websocket.WsMessageContext;
 import model.GameData;
 import service.CodedException;
 import service.GameService;
@@ -37,7 +40,7 @@ public class WebsocketServer {
                 case CONNECT -> gameConnect(ctx, command);
                 case MAKE_MOVE -> makeMove(ctx, new Gson().fromJson(ctx.message(), MakeMoveCommand.class));
                 case LEAVE -> leaveGame(ctx, command);
-                case RESIGN -> resignGame(ctx, command);
+                case RESIGN -> resignGame(command);
             }
         } catch (Exception ex) {
             var error = new ErrorMessage(ex.getMessage());
@@ -65,9 +68,15 @@ public class WebsocketServer {
         connections.broadcast(gameData.gameID(), sessionID, notification);
     }
 
-    private void leaveGame(WsContext ctx, UserGameCommand command) {
+    private void leaveGame(WsContext ctx, UserGameCommand command) throws CodedException {
+        var username = gameService.leaveGame(command.getAuthToken(), command.getGameID());
+        var notification = new NotificationMessage(String.format("%s has left the game", username));
+        connections.broadcast(command.getGameID(), ctx.sessionId(), notification);
     }
 
-    private void resignGame(WsContext ctx, UserGameCommand command) {
+    private void resignGame(UserGameCommand command) throws CodedException {
+        var username = gameService.resignGame(command.getAuthToken(), command.getGameID());
+        var notification = new NotificationMessage(String.format("%s has resigned the game", username));
+        connections.broadcast(command.getGameID(), "", notification);
     }
 }

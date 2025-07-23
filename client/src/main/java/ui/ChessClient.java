@@ -213,7 +213,7 @@ public class ChessClient implements MessageObserver {
         playerState = State.OBSERVING;
         currentGame = game;
 
-        return String.format("Joined %d as observer", game.gameID());
+        return String.format("Joined %s as observer", game.gameName());
     }
 
     private String redraw(String[] ignoredParams) throws Exception {
@@ -248,6 +248,7 @@ public class ChessClient implements MessageObserver {
     private String leave(String[] ignoredParams) throws Exception {
         verify(gameOver() || playing() || observing(), "Not in a game");
 
+        server.leave(authToken, currentGame.gameID());
         playerState = State.LOGGED_IN;
         currentGame = null;
         return "Left game";
@@ -256,6 +257,7 @@ public class ChessClient implements MessageObserver {
     private String resign(String[] ignoredParams) throws Exception {
         verify(playing(), "Not playing a game");
 
+        server.resign(authToken, currentGame.gameID());
         playerState = State.LOGGED_IN;
         currentGame = null;
         return "Resigned game";
@@ -263,7 +265,7 @@ public class ChessClient implements MessageObserver {
 
     @Override
     public void notify(String message) {
-        System.out.printf("%s[NOTIFICATION] %s%s%n", SET_TEXT_COLOR_BLUE, message, RESET_TEXT_COLOR);
+        System.out.printf("%n%s[NOTIFICATION] %s%s%n", SET_TEXT_COLOR_BLUE, message, RESET_TEXT_COLOR);
         printPrompt();
     }
 
@@ -306,10 +308,8 @@ public class ChessClient implements MessageObserver {
 
     private void printGame(Collection<ChessPosition> highlights) {
         var color = playerState == State.BLACK ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
-        System.out.println("\n");
-        System.out.print((currentGame.game().getBoard()).toString(color, highlights));
-        System.out.println();
-        System.out.printf("[GAME STATE] %s%n", currentGame.description());
+        var gameText = (currentGame.game().getBoard()).toString(color, highlights);
+        System.out.printf("%n%s[GAME STATE] %s%n%n", gameText, currentGame.description());
     }
 
     private String getStringParam(String name, String[] params, int pos) throws Exception {
