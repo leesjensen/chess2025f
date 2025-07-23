@@ -93,7 +93,7 @@ public class MySqlDataAccess implements DataAccess {
     public Collection<GameData> listGames() throws DataAccessException {
         var result = new ArrayList<GameData>();
         try (var conn = DatabaseManager.getConnection()) {
-            try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game`")) {
+            try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game` ORDER BY state DESC")) {
                 try (var rs = preparedStatement.executeQuery()) {
                     while (rs.next()) {
                         var gameData = readGameData(rs);
