@@ -45,7 +45,7 @@ public class ChessClient implements MessageObserver {
     }
 
     private void printPrompt() {
-
+        System.out.printf("%s>%s ", SET_TEXT_COLOR_YELLOW, RESET_TEXT_COLOR);
     }
 
     private String eval(String input) {
@@ -222,7 +222,7 @@ public class ChessClient implements MessageObserver {
 
     @Override
     public void notify(String message) {
-        System.out.println(message);
+        System.out.printf("%s%s%s%n", SET_TEXT_COLOR_YELLOW, message, RESET_TEXT_COLOR);
     }
 
     public void loadGame(GameData gameData) {
