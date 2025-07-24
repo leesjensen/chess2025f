@@ -75,12 +75,15 @@ public class GameService extends Service {
         return new ConnectionInfo(username, getRole(username, gameData), gameData);
     }
 
-    public GameData makeMove(String authToken, int gameID, ChessMove move) throws CodedException {
+    public record MoveInfo(String username, GameData gameData) {
+    }
+
+    public MoveInfo makeMove(String authToken, int gameID, ChessMove move) throws CodedException {
         AuthData authData = getAuthData(authToken);
         String username = authData.username();
         try {
             GameData gameData = getGame(gameID);
-            return updateGame(gameData.makeMove(username, move));
+            return new MoveInfo(username, updateGame(gameData.makeMove(username, move)));
         } catch (InvalidMoveException ex) {
             throw new CodedException(400, ex.getMessage(), ex);
         }
