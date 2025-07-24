@@ -78,6 +78,7 @@ public class WebsocketServer {
         var username = gameService.leaveGame(command.getAuthToken(), command.getGameID());
         var notification = new NotificationMessage(String.format("%s has left the game", username));
         connections.broadcast(command.getGameID(), ctx.sessionId(), notification);
+        connections.remove(ctx);
     }
 
     private void resignGame(UserGameCommand command) throws CodedException {

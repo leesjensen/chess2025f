@@ -19,9 +19,8 @@ public record GameData(int gameID, String whiteUsername, String blackUsername, S
     }
 
     public GameData makeMove(String username, ChessMove move) throws InvalidMoveException {
-        if (state != State.UNDECIDED) {
-            throw new InvalidMoveException("game already completed");
-        }
+        validateTurn(username);
+
         game.makeMove(move);
 
         if (game.isInStalemate(WHITE) || game.isInStalemate(BLACK)) {
@@ -37,6 +36,15 @@ public record GameData(int gameID, String whiteUsername, String blackUsername, S
         }
 
         return setState(State.UNDECIDED, String.format("%s moved %s. %s's turn.", username, move, game.turn));
+    }
+
+    public void validateTurn(String username) throws InvalidMoveException {
+        if (isGameOver()) {
+            throw new InvalidMoveException("game already completed");
+        }
+        if (game.turn == BLACK && !username.equals(blackUsername) || game.turn == WHITE && !username.equals(whiteUsername)) {
+            throw new InvalidMoveException("not your turn");
+        }
     }
 
     public boolean isGameOver() {

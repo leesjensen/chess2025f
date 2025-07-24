@@ -94,12 +94,12 @@ public class GameService extends Service {
         String username = authData.username();
         GameData gameData = getGame(gameID);
         if (!gameData.isGameOver()) {
-            if (gameData.whiteUsername().equals(username)) {
+            if (username.equals(gameData.whiteUsername())) {
                 gameData = gameData.setWhite(null);
-                gameData = gameData.setState(gameData.state(), String.format("%s playing WHITE has abandoned the game", username));
-            } else if (gameData.blackUsername().equals(username)) {
+                gameData = gameData.setState(gameData.state(), String.format("%s playing WHITE has resigned the game", username));
+            } else if (username.equals(gameData.blackUsername())) {
                 gameData = gameData.setBlack(null);
-                gameData = gameData.setState(gameData.state(), String.format("%s playing BLACK has abandoned the game", username));
+                gameData = gameData.setState(gameData.state(), String.format("%s playing BLACK has resigned the game", username));
             }
             updateGame(gameData);
         }
@@ -116,8 +116,12 @@ public class GameService extends Service {
                 gameData = gameData.setState(GameData.State.BLACK, String.format("%s playing WHITE resigned!", username));
             } else if (username.equals(gameData.blackUsername()) && gameData.whiteUsername() != null) {
                 gameData = gameData.setState(GameData.State.WHITE, String.format("%s playing BLACK resigned!", username));
+            } else {
+                throw new CodedException(400, "Observer cannot resign");
             }
             updateGame(gameData);
+        } else {
+            throw new CodedException(400, "Game is already over");
         }
         return username;
     }
