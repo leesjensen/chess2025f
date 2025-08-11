@@ -1,10 +1,11 @@
-import dataaccess.DataAccessException;
+import dataaccess.MySQLDBManager;
 import server.Server;
 
 public class Main {
     public static void main(String[] args) {
         try {
-            Server server = new Server();
+            var dbManager = new MySQLDBManager();
+            Server server = new Server(dbManager);
             server.run(8080);
 
             System.out.println("♕ 240 Chess Server");

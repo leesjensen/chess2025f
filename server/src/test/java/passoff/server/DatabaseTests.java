@@ -1,11 +1,11 @@
 package passoff.server;
 
 import chess.ChessGame;
+import dataaccess.*;
 import org.junit.jupiter.api.*;
 import passoff.model.*;
 import server.Server;
 
-import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,15 +17,15 @@ public class DatabaseTests {
     private static final TestUser TEST_USER = new TestUser("ExistingUser", "existingUserPassword", "eu@mail.com");
 
     private static TestServerFacade serverFacade;
+    private static DBManager dbManager;
 
     private static Server server;
-
-    private static Class<?> databaseManagerClass;
 
 
     @BeforeAll
     public static void startServer() {
-        server = new Server();
+        dbManager = new MySQLDBManager("test_chessPassOffDatabase");
+        server = new Server(dbManager);
         var port = server.run(0);
         System.out.println("Started test HTTP server on " + port);
 
@@ -33,20 +33,21 @@ public class DatabaseTests {
     }
 
     @BeforeEach
-    public void setUp() {
-        serverFacade.clear();
+    public void setUp() throws DataAccessException {
+        dbManager.clearDatabase();
     }
 
     @AfterAll
-    static void stopServer() {
+    static void stopServer() throws DataAccessException {
         server.stop();
+        dbManager.deleteDatabase();
     }
 
 
     @Test
     @DisplayName("Persistence Test")
     @Order(1)
-    public void persistenceTest() {
+    public void persistenceTest() throws DataAccessException {
         int initialRowCount = getDatabaseRows();
 
         TestAuthResult regResult = serverFacade.register(TEST_USER);
@@ -62,7 +63,7 @@ public class DatabaseTests {
         Assertions.assertTrue(initialRowCount < getDatabaseRows(), "No new data added to database");
 
         // Test that we can read the data after a restart
-        stopServer();
+        server.stop();
         startServer();
 
         //list games using the auth
@@ -90,28 +91,17 @@ public class DatabaseTests {
         executeForAllTables(this::checkTableForPassword);
     }
 
+
     @Test
     @DisplayName("Database Error Handling")
     @Order(3)
-    public void databaseErrorHandling() throws ReflectiveOperationException {
-        /*
-        This test simulates an interruption in connecting to MySQL after the server is already running (it started with 
-        MySQL working normally). If this happens, this should be considered an "Internal Server Error" and the response 
-        code for any endpoint which no longer can do what it needs to do (which for this project should be all of them) 
-        should be 500. The body of each of these responses should include a reasonable, relevant error message.
-         */
-        Properties fakeDbProperties = new Properties();
-        fakeDbProperties.setProperty("db.name", UUID.randomUUID().toString());
-        fakeDbProperties.setProperty("db.user", UUID.randomUUID().toString());
-        fakeDbProperties.setProperty("db.password", UUID.randomUUID().toString());
-        fakeDbProperties.setProperty("db.host", "localhost");
-        fakeDbProperties.setProperty("db.port", "100000");
+    public void databaseErrorHandling() {
+        var badDbManager = new FailureDBManager(dbManager);
+        var server = new Server(badDbManager);
+        var port = server.run(0);
+        System.out.println("Started test HTTP server on " + port);
 
-        Class<?> databaseManagerClass = findDatabaseManager();
-        Method loadPropertiesMethod = databaseManagerClass.getDeclaredMethod("loadProperties", Properties.class);
-        loadPropertiesMethod.setAccessible(true);
-        Object obj = databaseManagerClass.getDeclaredConstructor().newInstance();
-        loadPropertiesMethod.invoke(obj, fakeDbProperties);
+        var serverFacade = new TestServerFacade("localhost", Integer.toString(port));
 
         List<Supplier<TestResult>> operations = List.of(
                 () -> serverFacade.clear(),
@@ -123,6 +113,8 @@ public class DatabaseTests {
                 () -> serverFacade.joinPlayer(new TestJoinRequest(ChessGame.TeamColor.WHITE, 1), UUID.randomUUID().toString())
         );
 
+        badDbManager.failing = true;
+
         try {
             for (Supplier<TestResult> operation : operations) {
                 TestResult result = operation.get();
@@ -133,11 +125,48 @@ public class DatabaseTests {
                         "Error message didn't contain the word \"Error\"");
             }
         } finally {
-            Method loadFromResources = databaseManagerClass.getDeclaredMethod("loadPropertiesFromResources");
-            loadFromResources.setAccessible(true);
-            loadFromResources.invoke(obj);
+            server.stop();
         }
     }
+
+    /*
+      This class enables the simulation db failure after the server is already running (it started with
+      MySQL working normally). If this happens, this should be considered an "Internal Server Error" and the response
+      code for any endpoint which no longer can do what it needs to do (which for this project should be all of them)
+      should be 500. The body of each of these responses should include a reasonable, relevant error message.
+    */
+    private static class FailureDBManager implements DBManager {
+        private final DBManager dbManager;
+        public boolean failing = false;
+
+        public FailureDBManager(DBManager dbManager) {
+            this.dbManager = dbManager;
+        }
+
+        public void createDatabase() throws DataAccessException {
+            dbManager.createDatabase();
+        }
+
+        public void clearDatabase() throws DataAccessException {
+            dbManager.clearDatabase();
+        }
+
+        public void deleteDatabase() throws DataAccessException {
+            dbManager.deleteDatabase();
+        }
+
+        public Connection getConnection() throws DataAccessException {
+            if (failing) {
+                throw new DataAccessException(500, "trouble", null);
+            }
+            return dbManager.getConnection();
+        }
+
+        public String dbName() {
+            return "failureDB";
+        }
+    }
+
 
     private int getDatabaseRows() {
         AtomicInteger rows = new AtomicInteger();
@@ -183,36 +212,13 @@ public class DatabaseTests {
                     tableAction.execute(resultSet.getString(1), conn);
                 }
             }
-        } catch (ReflectiveOperationException | SQLException e) {
+        } catch (DataAccessException | SQLException e) {
             Assertions.fail(e.getMessage(), e);
         }
     }
 
-    private Connection getConnection() throws ReflectiveOperationException {
-        Class<?> clazz = findDatabaseManager();
-        Method getConnectionMethod = clazz.getDeclaredMethod("getConnection");
-        getConnectionMethod.setAccessible(true);
-
-        Object obj = clazz.getDeclaredConstructor().newInstance();
-        return (Connection) getConnectionMethod.invoke(obj);
-    }
-
-    private Class<?> findDatabaseManager() throws ClassNotFoundException {
-        if(databaseManagerClass != null) {
-            return databaseManagerClass;
-        }
-
-        for (Package p : getClass().getClassLoader().getDefinedPackages()) {
-            try {
-                Class<?> clazz = Class.forName(p.getName() + ".DatabaseManager");
-                clazz.getDeclaredMethod("getConnection");
-                databaseManagerClass = clazz;
-                return clazz;
-            } catch (ReflectiveOperationException ignored) {}
-        }
-        throw new ClassNotFoundException("Unable to load database in order to verify persistence. " +
-                "Are you using DatabaseManager to set your credentials? " +
-                "Did you edit the signature of the getConnection method?");
+    private Connection getConnection() throws DataAccessException {
+        return dbManager.getConnection();
     }
 
     @FunctionalInterface

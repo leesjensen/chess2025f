@@ -12,22 +12,24 @@ import static utils.StringUtils.randomString;
 
 public abstract class DbTests {
     protected static DataAccess db;
+    protected static DBManager connectionManager;
 
     @BeforeAll
     static void createDb() throws Exception {
-        db = new MySqlDataAccess();
+        connectionManager = new MySQLDBManager("test_dbTests");
+        db = new MySqlDataAccess(connectionManager);
     }
 
 
     @AfterAll
     static void deleteDb() throws Exception {
-        db.clear();
+        connectionManager.deleteDatabase();
     }
 
 
     @BeforeEach
     public void ClearDb() throws Exception {
-        db.clear();
+        connectionManager.clearDatabase();
     }
 
 
