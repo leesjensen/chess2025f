@@ -1,6 +1,7 @@
 package server;
 
 import com.google.gson.Gson;
+import dataaccess.DBManager;
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
 import dataaccess.MySqlDataAccess;
@@ -14,11 +15,11 @@ public class Server {
 
     private Javalin javalin;
 
-    public Server() {
+    public Server(DBManager dbManager) {
         try {
             javalin = Javalin.create(config -> config.staticFiles.add("web"));
 
-            DataAccess dataAccess = new MySqlDataAccess();
+            DataAccess dataAccess = new MySqlDataAccess(dbManager);
             var endpointManager = new EndpointManager(dataAccess);
             endpointManager.register(javalin);
 

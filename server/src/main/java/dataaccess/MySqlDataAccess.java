@@ -16,7 +16,10 @@ import static java.sql.Types.NULL;
 
 public class MySqlDataAccess implements DataAccess {
 
-    public MySqlDataAccess() throws DataAccessException {
+    private final DBManager dbManager;
+
+    public MySqlDataAccess(DBManager dbManager) throws DataAccessException {
+        this.dbManager = dbManager;
         configureDatabase();
     }
 
@@ -37,7 +40,7 @@ public class MySqlDataAccess implements DataAccess {
     }
 
     public UserData getUser(String username) throws DataAccessException {
-        try (var conn = DatabaseManager.getConnection()) {
+        try (var conn = dbManager.getConnection()) {
             try (var preparedStatement = conn.prepareStatement("SELECT password, email from `user` WHERE username=?")) {
                 preparedStatement.setString(1, username);
                 try (var rs = preparedStatement.executeQuery()) {
@@ -74,7 +77,7 @@ public class MySqlDataAccess implements DataAccess {
     }
 
     public GameData getGame(int gameID) throws DataAccessException {
-        try (var conn = DatabaseManager.getConnection()) {
+        try (var conn = dbManager.getConnection()) {
             try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game` WHERE gameID=?")) {
                 preparedStatement.setInt(1, gameID);
                 try (var rs = preparedStatement.executeQuery()) {
@@ -92,7 +95,7 @@ public class MySqlDataAccess implements DataAccess {
 
     public Collection<GameData> listGames() throws DataAccessException {
         var result = new ArrayList<GameData>();
-        try (var conn = DatabaseManager.getConnection()) {
+        try (var conn = dbManager.getConnection()) {
             try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game` ORDER BY state DESC")) {
                 try (var rs = preparedStatement.executeQuery()) {
                     while (rs.next()) {
@@ -128,7 +131,7 @@ public class MySqlDataAccess implements DataAccess {
     }
 
     public AuthData getAuth(String authToken) throws DataAccessException {
-        try (var conn = DatabaseManager.getConnection()) {
+        try (var conn = dbManager.getConnection()) {
             try (var preparedStatement = conn.prepareStatement("SELECT username from `authentication` WHERE authToken=?")) {
                 preparedStatement.setString(1, authToken);
                 try (var rs = preparedStatement.executeQuery()) {
@@ -194,8 +197,8 @@ public class MySqlDataAccess implements DataAccess {
 
     private void configureDatabase() throws DataAccessException {
         try {
-            DatabaseManager.createDatabase();
-            try (var conn = DatabaseManager.getConnection()) {
+            dbManager.createDatabase();
+            try (var conn = dbManager.getConnection()) {
                 for (var statement : createStatements) {
                     try (var preparedStatement = conn.prepareStatement(statement)) {
                         preparedStatement.executeUpdate();
@@ -208,7 +211,7 @@ public class MySqlDataAccess implements DataAccess {
     }
 
     private void executeCommand(String statement) throws DataAccessException {
-        try (var conn = DatabaseManager.getConnection()) {
+        try (var conn = dbManager.getConnection()) {
             try (var preparedStatement = conn.prepareStatement(statement)) {
                 preparedStatement.executeUpdate();
             }
@@ -218,7 +221,7 @@ public class MySqlDataAccess implements DataAccess {
     }
 
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
-        try (var conn = DatabaseManager.getConnection()) {
+        try (var conn = dbManager.getConnection()) {
             try (var preparedStatement = conn.prepareStatement(statement, RETURN_GENERATED_KEYS)) {
                 for (var i = 0; i < params.length; i++) {
                     var param = params[i];
@@ -247,7 +250,7 @@ public class MySqlDataAccess implements DataAccess {
     }
 
     public String toString() {
-        return String.format("MySQL - %s", DatabaseManager.dbName());
+        return String.format("MySQL - %s", dbManager.dbName());
     }
 
 }

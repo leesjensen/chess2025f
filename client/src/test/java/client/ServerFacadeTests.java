@@ -1,6 +1,9 @@
 package client;
 
 import chess.ChessGame;
+import dataaccess.DBManager;
+import dataaccess.DataAccessException;
+import dataaccess.MySQLDBManager;
 import model.*;
 import org.junit.jupiter.api.*;
 
@@ -18,24 +21,27 @@ import static utils.StringUtils.randomString;
 public class ServerFacadeTests {
 
     private static Server server;
+    private static DBManager dbManager;
     private static ServerFacade serverFacade;
 
     @BeforeAll
     public static void init() throws Exception {
-        server = new Server();
+        dbManager = new MySQLDBManager("test_serverFacade");
+        server = new Server(dbManager);
         var port = server.run(0);
         serverFacade = new ServerFacade(String.format("http://localhost:%d", port), null);
         System.out.println("Started test HTTP server on " + port);
     }
 
     @AfterEach
-    public void clearDb() throws Exception {
-        serverFacade.clear();
+    public void clearDb() throws DataAccessException {
+//        dbManager.clearDatabase();
     }
 
     @AfterAll
-    static void stopServer() {
+    static void stopServer() throws DataAccessException {
         server.stop();
+        dbManager.deleteDatabase();
     }
 
 

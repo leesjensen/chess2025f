@@ -1,6 +1,7 @@
 package passoff.server;
 
 import chess.*;
+import dataaccess.*;
 import jakarta.websocket.Endpoint;
 import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.Session;
@@ -21,6 +22,7 @@ import static websocket.messages.ServerMessage.ServerMessageType.*;
 public class WebSocketTests {
     private static WebsocketTestingEnvironment environment;
     private static TestServerFacade serverFacade;
+    private static DBManager dbManager;
     private static Server server;
     private static Long waitTime;
     private WebsocketUser white;
@@ -38,26 +40,28 @@ public class WebSocketTests {
 
 
     @AfterAll
-    static void stopServer() {
+    static void stopServer() throws DataAccessException {
         server.stop();
+        dbManager.deleteDatabase();
     }
 
     @BeforeAll
-    public static void init() throws URISyntaxException {
-        server = new Server();
+    public static void init() throws URISyntaxException, DataAccessException {
+        dbManager = new MySQLDBManager("test_chessWebSocketPassOff");
+        server = new Server(dbManager);
         var port = Integer.toString(server.run(0));
         System.out.println("Started test HTTP server on " + port);
 
         serverFacade = new TestServerFacade("localhost", port);
-        serverFacade.clear();
+        dbManager.clearDatabase();
         environment = new WebsocketTestingEnvironment("localhost", port, "/ws", TestFactory.getGsonBuilder());
         waitTime = TestFactory.getMessageTime();
     }
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws DataAccessException {
         //populate database with HTTP calls
-        serverFacade.clear();
+        dbManager.clearDatabase();
         white = registerUser("white", "WHITE", "white@chess.com");
         black = registerUser("black", "BLACK", "black@chess.com");
         observer = registerUser("observer", "OBSERVER", "observer@chess.com");
