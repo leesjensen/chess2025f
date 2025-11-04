@@ -56,18 +56,20 @@ public class MySqlDataAccess implements DataAccess {
     }
 
     public GameData createGame(String gameName) throws DataAccessException {
-        var game = new ChessGame();
-        game.board.resetBoard();
-        var state = GameData.State.UNDECIDED;
-        var ID = executeUpdate("INSERT INTO `game` (gameName, whitePlayerName, blackPlayerName, game, state, description) VALUES (?, ?, ?, ?, ?, ?)",
-                gameName,
-                null,
-                null,
-                game.toString(),
-                state.toString(),
-                "Game created");
-        if (ID != 0) {
-            return new GameData(ID, null, null, gameName, game, state, "Game created");
+        if (gameName != null) {
+            var game = new ChessGame();
+            game.board.resetBoard();
+            var state = GameData.State.UNDECIDED;
+            var ID = executeUpdate("INSERT INTO `game` (gameName, whitePlayerName, blackPlayerName, game, state, description) VALUES (?, ?, ?, ?, ?, ?)",
+                    gameName,
+                    null,
+                    null,
+                    game.toString(),
+                    state.toString(),
+                    "Game created");
+            if (ID != 0) {
+                return new GameData(ID, null, null, gameName, game, state, "Game created");
+            }
         }
 
         return null;
