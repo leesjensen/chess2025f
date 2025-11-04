@@ -26,7 +26,7 @@ public abstract class DbTests {
 
 
     @BeforeEach
-    public void ClearDb() throws Exception {
+    public void clearDb() throws Exception {
         db.clear();
     }
 

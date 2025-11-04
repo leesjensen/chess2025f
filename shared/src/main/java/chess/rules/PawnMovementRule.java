@@ -19,7 +19,8 @@ public class PawnMovementRule extends MovementRule {
         addEnPassantMoves(board, pos, moves);
 
         if (pieceColor == ChessGame.TeamColor.WHITE && pos.getRow() == 2 || pieceColor == ChessGame.TeamColor.BLACK && pos.getRow() == 7) {
-            if (board.isSquareEmpty(pos.getRow() + direction, pos.getColumn()) && board.isSquareEmpty(pos.getRow() + (direction * 2), pos.getColumn())) {
+            if (board.isSquareEmpty(pos.getRow() + direction, pos.getColumn()) &&
+                    board.isSquareEmpty(pos.getRow() + (direction * 2), pos.getColumn())) {
                 moves.add(new ChessMove(pos, new ChessPosition(pos.getRow() + (direction * 2), pos.getColumn()), null));
             }
         }
@@ -65,7 +66,8 @@ public class PawnMovementRule extends MovementRule {
         addPassant(pos.getColumn(), pos.getColumn() - 1, passantRow, startRow, attackRow, board, color, moves);
     }
 
-    private void addPassant(int column, int passantColumn, int passantRow, int startRow, int attackRow, ChessBoard board, ChessGame.TeamColor color, HashSet<ChessMove> moves) {
+    private void addPassant(int column, int passantColumn, int passantRow, int startRow, int attackRow,
+                            ChessBoard board, ChessGame.TeamColor color, HashSet<ChessMove> moves) {
         if (passantColumn >= 1 && passantColumn <= 8) {
             var passantMove = new ChessMove(new ChessPosition(startRow, passantColumn), new ChessPosition(passantRow, passantColumn), null);
             var candidate = board.getPiece(passantMove.getEndPosition());

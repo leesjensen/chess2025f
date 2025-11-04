@@ -258,15 +258,15 @@ public class ChessBoard {
     /**
      * Set both the foreground and background color. Foreground is 3, background is 4.
      */
-    private static String color(int FG, int BG) {
-        return String.format("\u001b[3%d;4%dm", FG, BG);
+    private static String color(int fg, int bg) {
+        return String.format("\u001b[3%d;4%dm", fg, bg);
     }
 
     /**
      * Set the foreground color.
      */
-    private static String color(int FG) {
-        return String.format("\u001b[1;3%dm", FG);
+    private static String color(int fg) {
+        return String.format("\u001b[1;3%dm", fg);
     }
 
     private static final String BORDER = color(BLACK, YELLOW);
@@ -282,7 +282,7 @@ public class ChessBoard {
     private static final String SPACE = " ";
     private static final String NEW_ROW = "\n";
 
-    private static final Map<PieceType, String> pieceMap = Map.of(
+    private static final Map<PieceType, String> PIECEMAP = Map.of(
             PieceType.KING, "K",
             PieceType.QUEEN, "Q",
             PieceType.BISHOP, "B",
@@ -332,7 +332,7 @@ public class ChessBoard {
             return squareColor + EMPTY_SQUARE + COLOR_RESET;
         }
         String color = (piece.getTeamColor() == TeamColor.WHITE) ? WHITE_PIECE : BLACK_PIECE;
-        String symbol = pieceMap.get(piece.getPieceType());
+        String symbol = PIECEMAP.get(piece.getPieceType());
         return squareColor + color + SPACE + symbol + SPACE + COLOR_RESET;
     }
 

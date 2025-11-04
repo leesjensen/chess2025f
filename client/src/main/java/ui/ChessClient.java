@@ -114,7 +114,8 @@ public class ChessClient implements MessageObserver {
         StringBuilder sb = new StringBuilder();
         for (var helpItem : helpList) {
             CommandInfo cmdInfo = commands.get(helpItem);
-            sb.append(String.format("  %s%s%s - %s%s%s\n", SET_TEXT_COLOR_BLUE, cmdInfo.syntax(), RESET_TEXT_COLOR, SET_TEXT_COLOR_MAGENTA, cmdInfo.description(), RESET_TEXT_COLOR));
+            sb.append(String.format("  %s%s%s - %s%s%s\n", SET_TEXT_COLOR_BLUE, cmdInfo.syntax(),
+                    RESET_TEXT_COLOR, SET_TEXT_COLOR_MAGENTA, cmdInfo.description(), RESET_TEXT_COLOR));
         }
         return sb.toString();
     }

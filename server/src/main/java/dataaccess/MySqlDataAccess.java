@@ -60,15 +60,16 @@ public class MySqlDataAccess implements DataAccess {
             var game = new ChessGame();
             game.board.resetBoard();
             var state = GameData.State.UNDECIDED;
-            var ID = executeUpdate("INSERT INTO `game` (gameName, whitePlayerName, blackPlayerName, game, state, description) VALUES (?, ?, ?, ?, ?, ?)",
+            var query = "INSERT INTO `game` (gameName, whitePlayerName, blackPlayerName, game, state, description) VALUES (?, ?, ?, ?, ?, ?)";
+            var id = executeUpdate(query,
                     gameName,
                     null,
                     null,
                     game.toString(),
                     state.toString(),
                     "Game created");
-            if (ID != 0) {
-                return new GameData(ID, null, null, gameName, game, state, "Game created");
+            if (id != 0) {
+                return new GameData(id, null, null, gameName, game, state, "Game created");
             }
         }
 
@@ -77,7 +78,8 @@ public class MySqlDataAccess implements DataAccess {
 
     public GameData getGame(int gameID) throws DataAccessException {
         try (var conn = DatabaseManager.getConnection()) {
-            try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game` WHERE gameID=?")) {
+            var query = "SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game` WHERE gameID=?";
+            try (var preparedStatement = conn.prepareStatement(query)) {
                 preparedStatement.setInt(1, gameID);
                 try (var rs = preparedStatement.executeQuery()) {
                     if (rs.next()) {
@@ -95,7 +97,8 @@ public class MySqlDataAccess implements DataAccess {
     public Collection<GameData> listGames() throws DataAccessException {
         var result = new ArrayList<GameData>();
         try (var conn = DatabaseManager.getConnection()) {
-            try (var preparedStatement = conn.prepareStatement("SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game` ORDER BY state DESC")) {
+            var query = "SELECT gameID, gameName, whitePlayerName, blackPlayerName, game, state, description FROM `game` ORDER BY state DESC";
+            try (var preparedStatement = conn.prepareStatement(query)) {
                 try (var rs = preparedStatement.executeQuery()) {
                     while (rs.next()) {
                         var gameData = readGameData(rs);
@@ -220,27 +223,25 @@ public class MySqlDataAccess implements DataAccess {
     }
 
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
-        try (var conn = DatabaseManager.getConnection()) {
-            try (var preparedStatement = conn.prepareStatement(statement, RETURN_GENERATED_KEYS)) {
-                for (var i = 0; i < params.length; i++) {
-                    var param = params[i];
-                    switch (param) {
-                        case String s -> preparedStatement.setString(i + 1, s);
-                        case Integer x -> preparedStatement.setInt(i + 1, x);
-                        case null -> preparedStatement.setNull(i + 1, NULL);
-                        default -> {
-                        }
+        try (var conn = DatabaseManager.getConnection(); var preparedStatement = conn.prepareStatement(statement, RETURN_GENERATED_KEYS)) {
+            for (var i = 0; i < params.length; i++) {
+                var param = params[i];
+                switch (param) {
+                    case String s -> preparedStatement.setString(i + 1, s);
+                    case Integer x -> preparedStatement.setInt(i + 1, x);
+                    case null -> preparedStatement.setNull(i + 1, NULL);
+                    default -> {
                     }
                 }
-                preparedStatement.executeUpdate();
-
-                var rs = preparedStatement.getGeneratedKeys();
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-
-                return 0;
             }
+            preparedStatement.executeUpdate();
+
+            var rs = preparedStatement.getGeneratedKeys();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+
+            return 0;
         } catch (SQLIntegrityConstraintViolationException ex) {
             throw new DataAccessException(403, ex.getMessage(), ex);
         } catch (SQLException ex) {
