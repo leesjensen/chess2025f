@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class GameServiceTests extends DbTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("dataAccessImplementations")
-    public void CreateGame(DataAccess dataAccess) throws Exception {
+    public void createGame(DataAccess dataAccess) throws Exception {
         var userService = new UserService(dataAccess);
         var authData = userService.registerUser(randomUser());
 
